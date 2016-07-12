@@ -1,0 +1,7 @@
+* API
+** /links
+- GET /
+  Get everything
+- GET /source/:source
+  Get links from source
+- GET /tag/:tag
