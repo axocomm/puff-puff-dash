@@ -14,7 +14,6 @@
 (def app-routes
   (routes
    (-> #'link-routes
-       (wrap-routes middleware/wrap-csrf)
        (wrap-routes middleware/wrap-formats))
    (-> #'static-routes
        (wrap-routes middleware/wrap-csrf)

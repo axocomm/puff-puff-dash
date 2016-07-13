@@ -1,21 +1,13 @@
--- :name create-user! :! :n
--- :doc creates a new user record
-INSERT INTO users
-(id, first_name, last_name, email, pass)
-VALUES (:id, :first_name, :last_name, :email, :pass)
+-- :name upsert-link! :! :n
+-- :doc insert or update a link
+INSERT INTO links
+(id, external_id, title, url, domain, source, properties)
+VALUES (:id, :external_id, :title, :url, :domain, :source, :properties)
 
--- :name update-user! :! :n
--- :doc update an existing user record
-UPDATE users
-SET first_name = :first_name, last_name = :last_name, email = :email
-WHERE id = :id
+-- :name delete-link! :! :n
+-- :doc delete a link
+DELETE FROM links WHERE id = :id
 
--- :name get-user :? :1
--- :doc retrieve a user given the id.
-SELECT * FROM users
-WHERE id = :id
-
--- :name delete-user! :! :n
--- :doc delete a user given the id
-DELETE FROM users
-WHERE id = :id
+-- :name get-links :? :*
+-- :doc get links
+SELECT * FROM links
