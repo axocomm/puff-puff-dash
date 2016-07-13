@@ -39,25 +39,15 @@
    [:a {:href url, :title title, :class (str "domain-" (name domain))}
     title]])
 
-(def example-links
-  [{:id     1
-    :title  "Foo"
-    :url    "http://google.com"
-    :domain :soundcloud
-    :source :reddit}
-   {:id     2
-    :title  "Your mom"
-    :url    "http://blah.com"
-    :domain :soundcloud
-    :source :reddit}])
-
 (defn home-page []
   [:div.container
    [:h1 "yo"]
-   [:ul.links
-    (for [link example-links]
-      ^{:key (:id link)}
-      [link-item link])]])
+   (if-let [links (session/get :links)]
+     [:ul.links
+      (for [link links]
+        ^{:key (:id link)}
+        [link-item link])]
+     [:span.error "No links haha"])])
 
 (def pages
   {:home  #'home-page
@@ -88,9 +78,22 @@
     (.setEnabled true)))
 
 ;; -------------------------
+;; Helpers
+(defn keywordize-keys [mp]
+  (reduce (fn [acc [k v]]
+            (assoc acc (keyword k) v))
+          {}
+          mp))
+
+;; -------------------------
 ;; Initialize app
 (defn fetch-links! []
-  (GET (str js/context "/links") {:handler #(session/put! :links %)}))
+  (GET (str js/context "/links") {:handler (fn [response]
+                                             (if (get response "success")
+                                               (session/put!
+                                                :links
+                                                (map keywordize-keys (get response "links")))
+                                               (.log js/console (get response "error"))))}))
 
 (defn mount-components []
   (r/render [#'navbar] (.getElementById js/document "navbar"))
