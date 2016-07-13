@@ -61,14 +61,16 @@
     [link-search-form]]
    [:div.links-container
     [:h1 "All Links"]
-    (if-let [links (query-links
-                    (session/get :links)
-                    (session/get :search-query))]
-      [:div.links
-       (for [link links]
-         ^{:key (:id link)}
-         [link-item link])]
-      [:span.error "No links haha"])]])
+    (let [links (or (query-links
+                     (session/get :links)
+                     (session/get :search-query))
+                    [])]
+      (if-not (empty? links)
+        [:div.links
+         (for [link links]
+           ^{:key (:id link)}
+           [link-item link])]
+        [:span.error "No links haha"]))]])
 
 (def pages
   {:home  #'home-page
