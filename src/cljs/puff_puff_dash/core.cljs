@@ -4,7 +4,6 @@
             [secretary.core :as secretary :include-macros true]
             [goog.events :as events]
             [goog.history.EventType :as HistoryEventType]
-            [markdown.core :refer [md->html]]
             [puff-puff-dash.ajax :refer [load-interceptors!]]
             [ajax.core :refer [GET POST]])
   (:import goog.History))
@@ -35,23 +34,33 @@
     [:div.col-md-12
      "this is the story of puff-puff-dash... work in progress"]]])
 
+(defn link-item [{:keys [title url id domain] :as link}]
+  [:li.link-item {:id id}
+   [:a {:href url, :title title, :class (str "domain-" (name domain))}
+    title]])
+
+(def example-links
+  [{:id     1
+    :title  "Foo"
+    :url    "http://google.com"
+    :domain :soundcloud
+    :source :reddit}
+   {:id     2
+    :title  "Your mom"
+    :url    "http://blah.com"
+    :domain :soundcloud
+    :source :reddit}])
+
 (defn home-page []
   [:div.container
-   [:div.jumbotron
-    [:h1 "Welcome to puff-puff-dash"]
-    [:p "Time to start building your site!"]
-    [:p [:a.btn.btn-primary.btn-lg {:href "http://luminusweb.net"} "Learn more »"]]]
-   [:div.row
-    [:div.col-md-12
-     [:h2 "Welcome to ClojureScript"]]]
-   (when-let [docs (session/get :docs)]
-     [:div.row
-      [:div.col-md-12
-       [:div {:dangerouslySetInnerHTML
-              {:__html (md->html docs)}}]]])])
+   [:h1 "yo"]
+   [:ul.links
+    (for [link example-links]
+      ^{:key (:id link)}
+      [link-item link])]])
 
 (def pages
-  {:home #'home-page
+  {:home  #'home-page
    :about #'about-page})
 
 (defn page []
@@ -72,16 +81,16 @@
 ;; must be called after routes have been defined
 (defn hook-browser-navigation! []
   (doto (History.)
-        (events/listen
-          HistoryEventType/NAVIGATE
-          (fn [event]
-              (secretary/dispatch! (.-token event))))
-        (.setEnabled true)))
+    (events/listen
+     HistoryEventType/NAVIGATE
+     (fn [event]
+       (secretary/dispatch! (.-token event))))
+    (.setEnabled true)))
 
 ;; -------------------------
 ;; Initialize app
-(defn fetch-docs! []
-  (GET (str js/context "/docs") {:handler #(session/put! :docs %)}))
+(defn fetch-links! []
+  (GET (str js/context "/links") {:handler #(session/put! :links %)}))
 
 (defn mount-components []
   (r/render [#'navbar] (.getElementById js/document "navbar"))
@@ -89,6 +98,6 @@
 
 (defn init! []
   (load-interceptors!)
-  (fetch-docs!)
+  (fetch-links!)
   (hook-browser-navigation!)
   (mount-components))
