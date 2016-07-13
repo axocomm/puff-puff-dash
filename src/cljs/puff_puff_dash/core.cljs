@@ -5,8 +5,12 @@
             [goog.events :as events]
             [goog.history.EventType :as HistoryEventType]
             [puff-puff-dash.ajax :refer [load-interceptors!]]
-            [ajax.core :refer [GET POST]])
+            [ajax.core :refer [GET POST]]
+            [clojure.string :as string])
   (:import goog.History))
+
+(declare set-search!)
+(declare query-links)
 
 (defn nav-link [uri title page collapsed?]
   [:li.nav-item
@@ -35,19 +39,36 @@
      "this is the story of puff-puff-dash... work in progress"]]])
 
 (defn link-item [{:keys [title url id domain] :as link}]
-  [:li.link-item {:id id}
+  [:div.link-item {:id (str "link-" id)}
    [:a {:href url, :title title, :class (str "domain-" (name domain))}
-    title]])
+    title]
+   [:div.link-meta
+    [:span.link-domain (name domain)]]])
+
+(defn link-search-form []
+  [:form.link-search
+   [:input {:type        "text"
+            :id          "search-term"
+            :placeholder "Search"
+            :required    true
+            :on-change   #(set-search! (-> % .-target .-value))}]
+   [:input {:type  "submit"
+            :value "Search"}]])
 
 (defn home-page []
   [:div.container
-   [:h1 "yo"]
-   (if-let [links (session/get :links)]
-     [:ul.links
-      (for [link links]
-        ^{:key (:id link)}
-        [link-item link])]
-     [:span.error "No links haha"])])
+   [:div.search-container
+    [link-search-form]]
+   [:div.links-container
+    [:h1 "All Links"]
+    (if-let [links (query-links
+                    (session/get :links)
+                    (session/get :search-query))]
+      [:div.links
+       (for [link links]
+         ^{:key (:id link)}
+         [link-item link])]
+      [:span.error "No links haha"])]])
 
 (def pages
   {:home  #'home-page
@@ -85,15 +106,41 @@
           {}
           mp))
 
+(defn query-str->query [query-str]
+  (or (reduce
+       (fn [acc term]
+         (let [[k v] (string/split term #":")]
+           (if-not (empty? v)
+             (assoc acc (keyword k) (name v))
+             acc)))
+       {}
+       (string/split query-str #" +"))
+      {}))
+
+(defn query-links [links query]
+  (.log js/console (str query))
+  (filter (fn [link]
+            (every? (fn [[k v]]
+                      (= (get link k) v))
+                    query))
+          links))
+
 ;; -------------------------
 ;; Initialize app
 (defn fetch-links! []
-  (GET (str js/context "/links") {:handler (fn [response]
-                                             (if (get response "success")
-                                               (session/put!
-                                                :links
-                                                (map keywordize-keys (get response "links")))
-                                               (.log js/console (get response "error"))))}))
+  (GET (str js/context "/links")
+      {:handler (fn [response]
+                  (if (get response "success")
+                    (session/put!
+                     :links
+                     (map keywordize-keys (get response "links")))
+                    (.log js/console (get response "error"))))}))
+
+(defn set-search!
+  ([]
+   (set-search! ""))
+  ([query-str]
+   (session/put! :search-query (query-str->query query-str))))
 
 (defn mount-components []
   (r/render [#'navbar] (.getElementById js/document "navbar"))
@@ -102,5 +149,6 @@
 (defn init! []
   (load-interceptors!)
   (fetch-links!)
+  (set-search!)
   (hook-browser-navigation!)
   (mount-components))
