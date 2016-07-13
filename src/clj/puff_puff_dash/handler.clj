@@ -21,5 +21,4 @@
      (error-page {:status 404
                   :title  "page not found"})))))
 
-
 (defn app [] (middleware/wrap-base #'app-routes))

@@ -1,10 +1,10 @@
 (ns puff-puff-dash.db.core
   (:require
-    [cheshire.core :refer [generate-string parse-string]]
-    [clojure.java.jdbc :as jdbc]
-    [conman.core :as conman]
-    [puff-puff-dash.config :refer [env]]
-    [mount.core :refer [defstate]])
+   [cheshire.core :refer [generate-string parse-string]]
+   [clojure.java.jdbc :as jdbc]
+   [conman.core :as conman]
+   [puff-puff-dash.config :refer [env]]
+   [mount.core :refer [defstate]])
   (:import org.postgresql.util.PGobject
            org.postgresql.jdbc4.Jdbc4Array
            clojure.lang.IPersistentMap
@@ -16,9 +16,9 @@
             PreparedStatement]))
 
 (defstate ^:dynamic *db*
-          :start (conman/connect!
-                   {:jdbc-url (env :database-url)})
-          :stop (conman/disconnect! *db*))
+  :start (conman/connect!
+          {:jdbc-url (env :database-url)})
+  :stop (conman/disconnect! *db*))
 
 (conman/bind-connection *db* "sql/queries.sql")
 
@@ -51,9 +51,9 @@
     (.setTimestamp stmt idx (Timestamp. (.getTime v)))))
 
 (defn to-pg-json [value]
-      (doto (PGobject.)
-            (.setType "jsonb")
-            (.setValue (generate-string value))))
+  (doto (PGobject.)
+    (.setType "jsonb")
+    (.setValue (generate-string value))))
 
 (extend-type clojure.lang.IPersistentVector
   jdbc/ISQLParameter
