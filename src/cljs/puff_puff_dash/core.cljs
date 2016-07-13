@@ -4,10 +4,13 @@
             [secretary.core :as secretary :include-macros true]
             [goog.events :as events]
             [goog.history.EventType :as HistoryEventType]
-            [markdown.core :refer [md->html]]
             [puff-puff-dash.ajax :refer [load-interceptors!]]
-            [ajax.core :refer [GET POST]])
+            [ajax.core :refer [GET POST]]
+            [clojure.string :as string])
   (:import goog.History))
+
+(declare set-search!)
+(declare query-links)
 
 (defn nav-link [uri title page collapsed?]
   [:li.nav-item
@@ -35,23 +38,40 @@
     [:div.col-md-12
      "this is the story of puff-puff-dash... work in progress"]]])
 
+(defn link-item [{:keys [title url id domain] :as link}]
+  [:div.link-item {:id (str "link-" id)}
+   [:a {:href url, :title title, :class (str "domain-" (name domain))}
+    title]
+   [:div.link-meta
+    [:span.link-domain (name domain)]]])
+
+(defn link-search-form []
+  [:form.link-search
+   [:input {:type        "text"
+            :id          "search-term"
+            :placeholder "Search"
+            :required    true
+            :on-change   #(set-search! (-> % .-target .-value))}]
+   [:input {:type  "submit"
+            :value "Search"}]])
+
 (defn home-page []
   [:div.container
-   [:div.jumbotron
-    [:h1 "Welcome to puff-puff-dash"]
-    [:p "Time to start building your site!"]
-    [:p [:a.btn.btn-primary.btn-lg {:href "http://luminusweb.net"} "Learn more »"]]]
-   [:div.row
-    [:div.col-md-12
-     [:h2 "Welcome to ClojureScript"]]]
-   (when-let [docs (session/get :docs)]
-     [:div.row
-      [:div.col-md-12
-       [:div {:dangerouslySetInnerHTML
-              {:__html (md->html docs)}}]]])])
+   [:div.search-container
+    [link-search-form]]
+   [:div.links-container
+    [:h1 "All Links"]
+    (if-let [links (query-links
+                    (session/get :links)
+                    (session/get :search-query))]
+      [:div.links
+       (for [link links]
+         ^{:key (:id link)}
+         [link-item link])]
+      [:span.error "No links haha"])]])
 
 (def pages
-  {:home #'home-page
+  {:home  #'home-page
    :about #'about-page})
 
 (defn page []
@@ -72,16 +92,55 @@
 ;; must be called after routes have been defined
 (defn hook-browser-navigation! []
   (doto (History.)
-        (events/listen
-          HistoryEventType/NAVIGATE
-          (fn [event]
-              (secretary/dispatch! (.-token event))))
-        (.setEnabled true)))
+    (events/listen
+     HistoryEventType/NAVIGATE
+     (fn [event]
+       (secretary/dispatch! (.-token event))))
+    (.setEnabled true)))
+
+;; -------------------------
+;; Helpers
+(defn keywordize-keys [mp]
+  (reduce (fn [acc [k v]]
+            (assoc acc (keyword k) v))
+          {}
+          mp))
+
+(defn query-str->query [query-str]
+  (or (reduce
+       (fn [acc term]
+         (let [[k v] (string/split term #":")]
+           (if-not (empty? v)
+             (assoc acc (keyword k) (name v))
+             acc)))
+       {}
+       (string/split query-str #" +"))
+      {}))
+
+(defn query-links [links query]
+  (.log js/console (str query))
+  (filter (fn [link]
+            (every? (fn [[k v]]
+                      (= (get link k) v))
+                    query))
+          links))
 
 ;; -------------------------
 ;; Initialize app
-(defn fetch-docs! []
-  (GET (str js/context "/docs") {:handler #(session/put! :docs %)}))
+(defn fetch-links! []
+  (GET (str js/context "/links")
+      {:handler (fn [response]
+                  (if (get response "success")
+                    (session/put!
+                     :links
+                     (map keywordize-keys (get response "links")))
+                    (.log js/console (get response "error"))))}))
+
+(defn set-search!
+  ([]
+   (set-search! ""))
+  ([query-str]
+   (session/put! :search-query (query-str->query query-str))))
 
 (defn mount-components []
   (r/render [#'navbar] (.getElementById js/document "navbar"))
@@ -89,6 +148,7 @@
 
 (defn init! []
   (load-interceptors!)
-  (fetch-docs!)
+  (fetch-links!)
+  (set-search!)
   (hook-browser-navigation!)
   (mount-components))
