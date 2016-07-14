@@ -38,9 +38,18 @@
                              :direction direction}
                             {:error (str "Invalid direction " (name direction))}))
 
+                        :limit
+                        (let [limit (-> tokens first js/parseInt)]
+                          (if (or (nil? limit)
+                                  (js/isNaN limit)
+                                  (< limit 1))
+                            {:error "Invalid limit"}
+                            {:limit limit}))
+
                         {:error (str "Invalid clause type " (name kw))})]
     (assoc clause-map :type kw)))
 
+;; TODO better handling of errors
 (defn parse-query [query-string]
   (let [clauses (string/split query-string #"\n")]
     (group-by :type (map ->clause clauses))))
@@ -64,22 +73,26 @@
   (every? #(apply % [link]) fns))
 
 (defn apply-query [query links]
-  (let [{:keys [where order]} (:clauses query)
-        where-fns             (when where
-                                (map ->where-fn where))
-        matching-links        (if [where-fns]
-                                (filter
-                                 #(where-matches? where-fns %)
-                                 links)
-                                links)
-        ordered-links         (if order
-                                (let [{:keys [field direction]} (first order)
-                                      ordered                   (sort-by field matching-links)]
-                                  (if (= direction :desc)
-                                    (reverse ordered)
-                                    ordered))
-                                matching-links)]
-    ordered-links))
+  (let [{:keys [where order limit]} (:clauses query)
+        where-fns                   (when where
+                                      (map ->where-fn where))
+
+        links (if [where-fns]
+                (filter
+                 #(where-matches? where-fns %)
+                 links)
+                links)
+        links (if order
+                (let [{:keys [field direction]} (first order)
+                      ordered                   (sort-by field links)]
+                  (if (= direction :desc)
+                    (reverse ordered)
+                    ordered))
+                links)
+        links (if limit
+                (take (-> limit first :limit) links)
+                links)]
+    links))
 
 (defn query-container []
   [:div#query-container
