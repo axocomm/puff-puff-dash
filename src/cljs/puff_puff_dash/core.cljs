@@ -40,10 +40,10 @@
 
 (defn link-item [{:keys [title url id domain] :as link}]
   [:div.link-item {:id (str "link-" id)}
-   [:a {:href url, :title title, :class (str "domain-" (name domain))}
+   [:a {:href url, :title title, :class (str "domain-" domain)}
     title]
    [:div.link-meta
-    [:span.link-domain (name domain)]]])
+    [:span.link-domain domain]]])
 
 (defn link-search-form []
   [:form.link-search
@@ -131,12 +131,12 @@
 ;; Initialize app
 (defn fetch-links! []
   (GET (str js/context "/links")
-      {:handler (fn [response]
-                  (if (get response "success")
-                    (session/put!
-                     :links
-                     (map keywordize-keys (get response "links")))
-                    (.log js/console (get response "error"))))}))
+       {:handler (fn [response]
+                   (if (get response "success")
+                     (session/put!
+                      :links
+                      (map keywordize-keys (get response "links")))
+                     (.log js/console (get response "error"))))}))
 
 (defn set-search!
   ([]

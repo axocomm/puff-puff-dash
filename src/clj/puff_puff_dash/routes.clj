@@ -52,8 +52,8 @@
 
 (def link-routes
   (context "/links" []
-           (GET "/" [] {:body {:success true
-                               :links   (db/get-links)}})
+           (GET "/" [] (layout/render-json {:success true
+                                            :links   (db/get-links)}))
            (POST "/" {:keys [body params]}
                  (let [links  (-> body
                                   slurp
