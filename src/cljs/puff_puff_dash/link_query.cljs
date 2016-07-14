@@ -46,18 +46,19 @@
     (group-by :type (map ->clause clauses))))
 
 (defn query->map [query]
-  (try
-    (let [clauses (parse-query query)]
-      {:clauses clauses})
-    (catch js/Error e
-      {:error (.getMessage e)})))
+  (when-not (empty? query)
+    (try
+      (let [clauses (parse-query query)]
+        {:clauses clauses})
+      (catch js/Error e
+        {:error (.getMessage e)}))))
 
 (defn ->where-fn [{:keys [cmp field value]}]
   (let [field (keyword field)]
     (case cmp
       :equals     #(= (get % field) value)
       :not-equals #(not= (get % field) value)
-      :like       #(re-find (re-pattern value) (get % field)))))
+      :like       #(re-find (re-pattern value) (or (get % field) "")))))
 
 (defn where-matches? [fns link]
   (every? #(apply % [link]) fns))
