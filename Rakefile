@@ -4,7 +4,8 @@ $config = {
     :image          => 'postgres',
     :username       => 'postgres',
     :password       => 'secretlol',
-    :database       => 'ppd'
+    :database       => 'ppd',
+    :host_port      => 6432
   }
 }
 
@@ -19,13 +20,14 @@ namespace :dev do
     container_name = $config[:db][:container_name]
     password = $config[:db][:password]
     image = $config[:db][:image]
+    port = $config[:db][:host_port]
 
     if container_running?(container_name)
       puts 'Container already running'
     else
       cmd = <<-EOT
 docker run \
-  --name #{container_name} -e POSTGRES_PASSWORD=#{password} -d #{image}
+  --name #{container_name} -e POSTGRES_PASSWORD=#{password} -d -p #{port}:5432 #{image}
 EOT
       sh cmd
     end
