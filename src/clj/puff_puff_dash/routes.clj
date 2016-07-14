@@ -29,7 +29,7 @@
                              [:subreddit :score])})}})
 
 (defn gen-id []
-  (java.util.UUID/randomUUID))
+  (str (java.util.UUID/randomUUID)))
 
 (defn import-links [links {:keys [source]}]
   (when-let [source-opts (get link-sources (keyword source))]
@@ -57,7 +57,5 @@
                                   slurp
                                   (json/read-str :key-fn keyword))
                        links  (take 5 links)
-                       _      (def links links)
-                       _      (def params params)
                        result (import-links links params)]
                    {:body {:success result}}))))
