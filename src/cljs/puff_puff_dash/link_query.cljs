@@ -30,13 +30,13 @@
                             {:error (str "Invalid comparison " cmp-str)}))
 
                         :order
-                        (let [[field order] tokens
-                              order         (or order "asc")
-                              order         (-> order string/lower-case keyword)]
-                          (if (some #{order} [:asc :desc])
-                            {:field field
-                             :order order}
-                            {:error (str "Invalid order " order)}))
+                        (let [[field direction] tokens
+                              direction         (or direction "asc")
+                              direction         (-> direction string/lower-case keyword)]
+                          (if (some #{direction} [:asc :desc])
+                            {:field     (keyword field)
+                             :direction direction}
+                            {:error (str "Invalid direction " (name direction))}))
 
                         {:error (str "Invalid clause type " (name kw))})]
     (assoc clause-map :type kw)))
@@ -51,7 +51,7 @@
       (let [clauses (parse-query query-string)]
         {:clauses clauses})
       (catch js/Error e
-        {:error (.getMessage e)}))))
+        {:error (str e)}))))
 
 (defn ->where-fn [{:keys [cmp field value]}]
   (let [field (keyword field)]
@@ -71,8 +71,15 @@
                                 (filter
                                  #(where-matches? where-fns %)
                                  links)
-                                links)]
-    matching-links))
+                                links)
+        ordered-links         (if order
+                                (let [{:keys [field direction]} (first order)
+                                      ordered                   (sort-by field matching-links)]
+                                  (if (= direction :desc)
+                                    (reverse ordered)
+                                    ordered))
+                                matching-links)]
+    ordered-links))
 
 (defn query-container []
   [:div#query-container
