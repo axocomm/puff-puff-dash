@@ -40,7 +40,10 @@
 
 (defn link-item [{:keys [title url id domain] :as link}]
   [:div.link-item {:id (str "link-" id)}
-   [:a {:href url, :title title, :class (str "domain-" domain)}
+   [:a {:href   url
+        :title  title
+        :class  (str "domain-" domain)
+        :target "_blank"}
     title]
    [:div.link-meta
     [:span.link-domain domain]]])
@@ -109,15 +112,14 @@
           mp))
 
 (defn query-str->query [query-str]
-  (or (reduce
+  (reduce
        (fn [acc term]
          (let [[k v] (string/split term #":")]
            (if-not (empty? v)
              (assoc acc (keyword k) (name v))
              acc)))
        {}
-       (string/split query-str #" +"))
-      {}))
+       (string/split query-str #" +")))
 
 (defn query-links [links query]
   (.log js/console (str query))
