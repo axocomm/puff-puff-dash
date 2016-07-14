@@ -73,39 +73,47 @@
                                 links)]
     matching-links))
 
+(defn query-container []
+  [:div#query-container
+   [:textarea.form-control
+    {:id        "query"
+     :style     {:font-family "monospace"}
+     :rows      6
+     :on-change #(reset! query (-> % .-target .-value))}
+    @query]])
+
+(defn query-buttons []
+  [:div#query-buttons
+   [:button.btn.btn-primary
+    {:on-click (fn [_]
+                 (reset! result
+                         (apply-query
+                          (query->map @query)
+                          (session/get :links))))}
+    "Evaluate"]])
+
+(defn query-results []
+  [:div#query-result
+   [:pre {:style {:background-color "#ededed"
+                  :padding          20
+                  :border-radius    4}}
+    (clj->json (query->map @query) 2)]])
+
+(defn query-matches []
+  [:ul#matches
+   (for [link @result]
+     ^{:key (:id link)}
+     [:li
+      [:ul
+       [:li [:strong "Title: "] (:title link)]
+       [:li [:strong "Domain: "] (:domain link)]]])])
+
 (defn query-page []
   [:div.container
    [:div.row
-    [:div.col-md-12
-     [:div#query-container
-      [:textarea.form-control
-       {:id        "query"
-        :style     {:font-family "monospace"}
-        :rows      6
-        :on-change #(reset! query (-> % .-target .-value))}
-       @query]]]]
-   [:div.row
     [:div.col-md-6
-     [:div#query-buttons
-      [:button.btn.btn-primary
-       {:on-click (fn [_]
-                    (reset! result
-                            (apply-query
-                             (query->map @query)
-                             (session/get :links))))}
-       "Evaluate"]]]
+     [query-container]
+     [query-buttons]
+     [query-results]]
     [:div.col-md-6
-     [:div#query-result
-      [:pre {:style {:background-color "#ededed"
-                     :padding          20
-                     :border-radius    4}}
-       (clj->json (query->map @query) 2)]]]]
-   [:div.row
-    [:div.col-md-12
-     [:ul#matches
-      (for [link @result]
-        ^{:key (:id link)}
-        [:li
-         [:ul
-          [:li [:strong "Title: "] (:title link)]
-          [:li [:strong "Domain: "] (:domain link)]]])]]]])
+     [query-matches]]]])
