@@ -6,7 +6,8 @@
             [goog.history.EventType :as HistoryEventType]
             [puff-puff-dash.ajax :refer [load-interceptors!]]
             [ajax.core :refer [GET POST]]
-            [clojure.string :as string])
+            [clojure.string :as string]
+            [puff-puff-dash.link-query :refer [query-page]])
   (:import goog.History))
 
 (declare set-search!)
@@ -30,7 +31,8 @@
         [:a.navbar-brand {:href "#/"} "puff-puff-dash"]
         [:ul.nav.navbar-nav
          [nav-link "#/" "Home" :home collapsed?]
-         [nav-link "#/about" "About" :about collapsed?]]]])))
+         [nav-link "#/about" "About" :about collapsed?]
+         [nav-link "#/query" "query" :about collapsed?]]]])))
 
 (defn about-page []
   [:div.container
@@ -77,7 +79,8 @@
 
 (def pages
   {:home  #'home-page
-   :about #'about-page})
+   :about #'about-page
+   :query #'query-page})
 
 (defn page []
   [(pages (session/get :page))])
@@ -91,6 +94,9 @@
 
 (secretary/defroute "/about" []
   (session/put! :page :about))
+
+(secretary/defroute "/query" []
+  (session/put! :page :query))
 
 ;; -------------------------
 ;; History
