@@ -71,7 +71,7 @@
                                  #(where-matches? where-fns %)
                                  links)
                                 links)]
-    links))
+    matching-links))
 
 (defn query-page []
   [:div.container
