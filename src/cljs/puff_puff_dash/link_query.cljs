@@ -42,8 +42,11 @@
     (assoc clause-map :type kw)))
 
 (defn parse-query [query]
-  (let [clauses (string/split query #"\n")
-        clauses (group-by :type (map ->clause clauses))]
+  (let [clauses (string/split query #"\n")]
+    (group-by :type (map ->clause clauses))))
+
+(defn evaluate [query]
+  (let [clauses (parse-query query)]
     {:clauses clauses}))
 
 (defn query-page []
@@ -61,7 +64,7 @@
     [:div.col-md-6
      [:div#query-buttons
       [:button.btn.btn-primary
-       {:on-click #(reset! result (parse-query @query))}
+       {:on-click #(reset! result (evaluate @query))}
        "Evaluate"]]]
     [:div.col-md-6
      [:div#query-result
