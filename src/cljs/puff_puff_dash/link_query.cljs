@@ -27,7 +27,7 @@
                             {:cmp   cmp
                              :field field
                              :value value}
-                            {:error (str "Invalid comparison " cmp-str)}))
+                            (throw (js/Error (str "Invalid comparison " cmp-str)))))
 
                         :order
                         (let [[field direction] tokens
@@ -36,17 +36,17 @@
                           (if (some #{direction} [:asc :desc])
                             {:field     (keyword field)
                              :direction direction}
-                            {:error (str "Invalid direction " (name direction))}))
+                            (throw (js/Error (str "Invalid direction " (name direction))))))
 
                         :limit
                         (let [limit (-> tokens first js/parseInt)]
                           (if (or (nil? limit)
                                   (js/isNaN limit)
                                   (< limit 1))
-                            {:error "Invalid limit"}
+                            (throw "Invalid limit")
                             {:limit limit}))
 
-                        {:error (str "Invalid clause type " (name kw))})]
+                        (throw (js/Error (str "Invalid clause type " (name kw)))))]
     (assoc clause-map :type kw)))
 
 ;; TODO better handling of errors
