@@ -1,9 +1,10 @@
 (ns puff-puff-dash.routes
   (:require [puff-puff-dash.layout :as layout]
-            [compojure.core :refer [defroutes context GET POST]]
+            [compojure.core :refer [defroutes context GET POST DELETE]]
             [ring.util.http-response :as response]
             [clojure.data.json :as json]
-            [puff-puff-dash.db.core :refer [*db*] :as db]))
+            [puff-puff-dash.db.core :refer [*db*] :as db]
+            [clojure.string :as string]))
 
 (def example-links
   [{:id     1
@@ -20,7 +21,8 @@
 (def link-sources
   {:reddit {:marshal-fn
             (fn [link]
-              {:title       (:title link)
+              {:title       (or (:title link)
+                                (:link_title link))
                :external_id (:id link)
                :url         (:url link)
                :domain      (:domain link)
@@ -51,11 +53,26 @@
 (def link-routes
   (context "/links" []
            (GET "/" [] {:body {:success true
-                               :links   example-links}})
+                               :links   (db/get-links)}})
            (POST "/" {:keys [body params]}
                  (let [links  (-> body
                                   slurp
                                   (json/read-str :key-fn keyword))
-                       links  (take 5 links)
-                       result (import-links links params)]
-                   {:body {:success result}}))))
+                       result (try
+                                (do
+                                  (import-links links params)
+                                  {:success  true
+                                   :imported (count links)})
+                                (catch Exception e
+                                  {:success false
+                                   :error   (str (.getNextException e))}))]
+                   (layout/render-json result)))
+           (DELETE "/" {:keys [params]}
+                   (if-let [ids (:ids params)]
+                     (do
+                       (doseq [id (string/split ids #",")]
+                         (db/delete-link! {:id id}))
+                       (layout/render-json {:success true
+                                            :deleted (string/split ids #",")}))
+                     (layout/render-json {:success false
+                                          :error   "Not implemented yet"})))))
