@@ -1,9 +1,9 @@
 (ns puff-puff-dash.link-query
   (:require [reagent.core :as r]
+            [reagent.session :as session]
             [clojure.string :as string]))
 
-(def query (r/atom (string/join "\n" ["where domain = 'foo'"
-                                      "where title  ~ 'bar'"])))
+(def query (r/atom (string/join "\n" ["where domain = soundcloud.com"])))
 (def result (r/atom nil))
 
 (defn clj->json
@@ -38,16 +38,40 @@
                              :order order}
                             {:error (str "Invalid order " order)}))
 
-                        {:error (str "Invalid clause type " kw)})]
+                        {:error (str "Invalid clause type " (name kw))})]
     (assoc clause-map :type kw)))
 
 (defn parse-query [query]
   (let [clauses (string/split query #"\n")]
     (group-by :type (map ->clause clauses))))
 
-(defn evaluate [query]
-  (let [clauses (parse-query query)]
-    {:clauses clauses}))
+(defn query->map [query]
+  (try
+    (let [clauses (parse-query query)]
+      {:clauses clauses})
+    (catch js/Error e
+      {:error (.getMessage e)})))
+
+(defn ->where-fn [{:keys [cmp field value]}]
+  (let [field (keyword field)]
+    (case cmp
+      :equals     #(= (get % field) value)
+      :not-equals #(not= (get % field) value)
+      :like       #(re-find (re-pattern value) (get % field)))))
+
+(defn where-matches? [fns link]
+  (every? #(apply % [link]) fns))
+
+(defn apply-query [query links]
+  (let [{:keys [where order]} (:clauses query)
+        where-fns             (when where
+                                (map ->where-fn where))
+        matching-links        (if [where-fns]
+                                (filter
+                                 #(where-matches? where-fns %)
+                                 links)
+                                links)]
+    links))
 
 (defn query-page []
   [:div.container
@@ -64,11 +88,24 @@
     [:div.col-md-6
      [:div#query-buttons
       [:button.btn.btn-primary
-       {:on-click #(reset! result (evaluate @query))}
+       {:on-click (fn [_]
+                    (reset! result
+                            (apply-query
+                             (query->map @query)
+                             (session/get :links))))}
        "Evaluate"]]]
     [:div.col-md-6
      [:div#query-result
       [:pre {:style {:background-color "#ededed"
                      :padding          20
                      :border-radius    4}}
-       (clj->json @result 2)]]]]])
+       (clj->json (query->map @query) 2)]]]]
+   [:div.row
+    [:div.col-md-12
+     [:ul#matches
+      (for [link @result]
+        ^{:key (:id link)}
+        [:li
+         [:ul
+          [:li [:strong "Title: "] (:title link)]
+          [:li [:strong "Domain: "] (:domain link)]]])]]]])
