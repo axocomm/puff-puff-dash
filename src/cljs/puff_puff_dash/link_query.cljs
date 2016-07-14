@@ -3,7 +3,7 @@
             [reagent.session :as session]
             [clojure.string :as string]))
 
-(def query (r/atom (string/join "\n" ["where domain = soundcloud.com"])))
+(def query (r/atom nil))
 (def result (r/atom nil))
 
 (defn clj->json
@@ -41,14 +41,14 @@
                         {:error (str "Invalid clause type " (name kw))})]
     (assoc clause-map :type kw)))
 
-(defn parse-query [query]
-  (let [clauses (string/split query #"\n")]
+(defn parse-query [query-string]
+  (let [clauses (string/split query-string #"\n")]
     (group-by :type (map ->clause clauses))))
 
-(defn query->map [query]
-  (when-not (empty? query)
+(defn query->map [query-string]
+  (when-not (empty? query-string)
     (try
-      (let [clauses (parse-query query)]
+      (let [clauses (parse-query query-string)]
         {:clauses clauses})
       (catch js/Error e
         {:error (.getMessage e)}))))
@@ -80,8 +80,8 @@
     {:id        "query"
      :style     {:font-family "monospace"}
      :rows      6
-     :on-change #(reset! query (-> % .-target .-value))}
-    @query]])
+     :on-change #(reset! query (-> % .-target .-value query->map))}
+    (string/join "\n" ["where domain = soundcloud.com"])]])
 
 (defn query-buttons []
   [:div#query-buttons
@@ -89,16 +89,16 @@
     {:on-click (fn [_]
                  (reset! result
                          (apply-query
-                          (query->map @query)
+                          @query
                           (session/get :links))))}
     "Evaluate"]])
 
-(defn query-results []
+(defn query-display []
   [:div#query-result
    [:pre {:style {:background-color "#ededed"
                   :padding          20
                   :border-radius    4}}
-    (clj->json (query->map @query) 2)]])
+    (clj->json @query 2)]])
 
 (defn query-matches []
   [:ul#matches
@@ -115,6 +115,6 @@
     [:div.col-md-6
      [query-container]
      [query-buttons]
-     [query-results]]
+     [query-display]]
     [:div.col-md-6
      [query-matches]]]])
