@@ -15,7 +15,7 @@
 (defn ->clause [clause-str]
   (let [[kw & tokens] (string/split clause-str #" +")
         kw            (-> kw string/lower-case keyword)
-        clause-map    (case kw
+        clause        (case kw
                         :where
                         (let [[field cmp-str value] tokens
                               cmp                   (case cmp-str
@@ -43,16 +43,22 @@
                           (if (or (nil? limit)
                                   (js/isNaN limit)
                                   (< limit 1))
-                            (throw "Invalid limit")
+                            (throw (js/Error "Invalid limit"))
                             {:limit limit}))
 
                         (throw (js/Error (str "Invalid clause type " (name kw)))))]
-    (assoc clause-map :type kw)))
+    (assoc clause :type kw)))
 
 ;; TODO better handling of errors
 (defn parse-query [query-string]
-  (let [clauses (string/split query-string #"\n")]
-    (group-by :type (map ->clause clauses))))
+  (let [lines                       (string/split query-string #"\n")
+        {:keys [where order limit]} (->> lines
+                                         (map ->clause)
+                                         (group-by :type))
+        query                       {:where where
+                                     :order (first order)
+                                     :limit (-> limit first :limit)}]
+    (into {} (filter val query))))
 
 (defn query->map [query-string]
   (when-not (empty? query-string)
@@ -83,14 +89,14 @@
                  links)
                 links)
         links (if order
-                (let [{:keys [field direction]} (first order)
+                (let [{:keys [field direction]} order
                       ordered                   (sort-by field links)]
                   (if (= direction :desc)
                     (reverse ordered)
                     ordered))
                 links)
         links (if limit
-                (take (-> limit first :limit) links)
+                (take limit links)
                 links)]
     links))
 
