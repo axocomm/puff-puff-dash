@@ -80,7 +80,9 @@ clause types where, order, and limit."
     (case cmp
       :equals     #(= (get % field) value)
       :not-equals #(not= (get % field) value)
-      :like       #(re-find (re-pattern value) (or (get % field) "")))))
+      :like       (fn [link]
+                    (re-find (re-pattern (str "(?i)" value))
+                             (or (get link field) ""))))))
 
 (defn matches-all?
   "Determine if the link satisfies all given predicates."
