@@ -6,18 +6,6 @@
             [puff-puff-dash.db.core :refer [*db*] :as db]
             [clojure.string :as string]))
 
-(def example-links
-  [{:id     1
-    :title  "Foo"
-    :url    "http://google.com"
-    :domain :soundcloud
-    :source :reddit}
-   {:id     2
-    :title  "Your mom"
-    :url    "http://blah.com"
-    :domain :soundcloud
-    :source :reddit}])
-
 (def link-sources
   {:reddit {:marshal-fn
             (fn [link]

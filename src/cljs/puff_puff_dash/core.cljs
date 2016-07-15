@@ -6,12 +6,22 @@
             [goog.history.EventType :as HistoryEventType]
             [puff-puff-dash.ajax :refer [load-interceptors!]]
             [ajax.core :refer [GET POST]]
-            [clojure.string :as string])
+            [clojure.string :as string]
+            [puff-puff-dash.link-query :as lq])
   (:import goog.History))
 
-(declare set-search!)
-(declare query-links)
+(def query-str (r/atom nil))
+(def query (r/atom {}))
+(def result (r/atom (session/get :links)))
 
+(defn reset-all! []
+  (do
+    (reset! result (session/get :links))
+    (reset! query {})
+    (reset! query-str "")))
+
+;; -------------------------
+;; Components
 (defn nav-link [uri title page collapsed?]
   [:li.nav-item
    {:class (when (= page (session/get :page)) "active")}
@@ -48,32 +58,74 @@
    [:div.link-meta
     [:span.link-domain domain]]])
 
-(defn link-search-form []
-  [:form.link-search
-   [:input {:type        "text"
-            :id          "search-term"
-            :placeholder "Search"
-            :required    true
-            :on-change   #(set-search! (-> % .-target .-value))}]
-   [:input {:type  "submit"
-            :value "Search"}]])
+(defn query-container []
+  [:div#query-container
+   [:textarea.form-control
+    {:id        "query"
+     :style     {:font-family "monospace"}
+     :rows      6
+     :on-change (fn [e]
+                  (do
+                    (reset! query-str (-> e .-target .-value))
+                    (reset! query (lq/query->map @query-str))))
+     :value     @query-str}]])
+
+(defn query-buttons []
+  [:div#query-buttons {:style {:text-align :center}}
+   [:button.btn.btn-primary
+    {:style    {:margin    10
+                :min-width 100}
+     :on-click (fn [_]
+                 (reset! result
+                         (lq/apply-query
+                          @query
+                          (session/get :links))))}
+    "Evaluate"]
+   [:button.btn.btn-danger
+    {:style    {:margin    10
+                :min-width 100}
+     :on-click #'reset-all!}
+    "Reset"]])
+
+(defn query-display []
+  [:div#query-display
+   [:pre {:style {:background-color "#ededed"
+                  :padding          20
+                  :border-radius    4
+                  :height           300
+                  :overflow-y       :scroll}}
+    (lq/clj->json @query 2)]])
+
+(defn query-matches []
+  [:ul#matches
+   (for [link @result]
+     ^{:key (:id link)}
+     [:li
+      [:ul
+       [:li [:strong "Title: "] (:title link)]
+       [:li [:strong "Domain: "] (:domain link)]]])])
+
+(defn query-page []
+  [:div.container
+   [:h1 "Search"]
+   [:div.row
+    [:div.col-md-6
+     [query-container]
+     [query-buttons]]
+    [:div.col-md-6
+     [query-display]]]])
 
 (defn home-page []
   [:div.container
-   [:div.search-container
-    [link-search-form]]
+   [query-page]
    [:div.links-container
     [:h1 "All Links"]
-    (let [links (or (query-links
-                     (session/get :links)
-                     (session/get :search-query))
-                    [])]
-      (if-not (empty? links)
-        [:div.links
-         (for [link links]
-           ^{:key (:id link)}
-           [link-item link])]
-        [:span.error "No links haha"]))]])
+    (if-not (empty? @result)
+      [:div.links
+       (for [link @result]
+         ^{:key (:id link)}
+         [link-item link])]
+      [:span.error "No links haha"])]])
 
 (def pages
   {:home  #'home-page
@@ -111,40 +163,18 @@
           {}
           mp))
 
-(defn query-str->query [query-str]
-  (reduce
-       (fn [acc term]
-         (let [[k v] (string/split term #":")]
-           (if-not (empty? v)
-             (assoc acc (keyword k) (name v))
-             acc)))
-       {}
-       (string/split query-str #" +")))
-
-(defn query-links [links query]
-  (.log js/console (str query))
-  (filter (fn [link]
-            (every? (fn [[k v]]
-                      (= (get link k) v))
-                    query))
-          links))
-
 ;; -------------------------
 ;; Initialize app
 (defn fetch-links! []
   (GET (str js/context "/links")
        {:handler (fn [response]
                    (if (get response "success")
-                     (session/put!
-                      :links
-                      (map keywordize-keys (get response "links")))
+                     (do
+                       (session/put!
+                        :links
+                        (map keywordize-keys (get response "links")))
+                       (reset-all!))
                      (.log js/console (get response "error"))))}))
-
-(defn set-search!
-  ([]
-   (set-search! ""))
-  ([query-str]
-   (session/put! :search-query (query-str->query query-str))))
 
 (defn mount-components []
   (r/render [#'navbar] (.getElementById js/document "navbar"))
@@ -153,6 +183,5 @@
 (defn init! []
   (load-interceptors!)
   (fetch-links!)
-  (set-search!)
   (hook-browser-navigation!)
   (mount-components))
