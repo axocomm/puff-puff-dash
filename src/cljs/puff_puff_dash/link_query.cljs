@@ -3,7 +3,8 @@
             [reagent.session :as session]
             [clojure.string :as string]))
 
-(def query (r/atom nil))
+(def query-str (r/atom nil))
+(def query (r/atom {}))
 (def result (r/atom nil))
 
 (defn clj->json
@@ -11,6 +12,12 @@
    (.stringify js/JSON (clj->js x)))
   ([x spacing]
    (.stringify js/JSON (clj->js x) nil spacing)))
+
+(defn reset-all! []
+  (do
+    (reset! result (session/get :links))
+    (reset! query {})
+    (reset! query-str "")))
 
 (defn ->clause
   "Split a query line into its parts and try to return a map of its details.
@@ -117,18 +124,28 @@ clause types where, order, and limit."
     {:id        "query"
      :style     {:font-family "monospace"}
      :rows      6
-     :on-change #(reset! query (-> % .-target .-value query->map))}
-    (string/join "\n" ["where domain = soundcloud.com"])]])
+     :on-change (fn [e]
+                  (do
+                    (reset! query-str (-> e .-target .-value))
+                    (reset! query (query->map @query-str))))
+     :value     @query-str}]])
 
 (defn query-buttons []
-  [:div#query-buttons
+  [:div#query-buttons {:style {:text-align :center}}
    [:button.btn.btn-primary
-    {:on-click (fn [_]
+    {:style    {:margin    10
+                :min-width 100}
+     :on-click (fn [_]
                  (reset! result
                          (apply-query
                           @query
                           (session/get :links))))}
-    "Evaluate"]])
+    "Evaluate"]
+   [:button.btn.btn-danger
+    {:style    {:margin    10
+                :min-width 100}
+     :on-click #'reset-all!}
+    "Reset"]])
 
 (defn query-display []
   [:div#query-result
