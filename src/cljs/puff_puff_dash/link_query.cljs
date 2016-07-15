@@ -3,21 +3,11 @@
             [reagent.session :as session]
             [clojure.string :as string]))
 
-(def query-str (r/atom nil))
-(def query (r/atom {}))
-(def result (r/atom nil))
-
 (defn clj->json
   ([x]
    (.stringify js/JSON (clj->js x)))
   ([x spacing]
    (.stringify js/JSON (clj->js x) nil spacing)))
-
-(defn reset-all! []
-  (do
-    (reset! result (session/get :links))
-    (reset! query {})
-    (reset! query-str "")))
 
 (defn ->clause
   "Split a query line into its parts and try to return a map of its details.
@@ -117,58 +107,3 @@ clause types where, order, and limit."
                                       (take limit links)
                                       links)]
     links))
-
-(defn query-container []
-  [:div#query-container
-   [:textarea.form-control
-    {:id        "query"
-     :style     {:font-family "monospace"}
-     :rows      6
-     :on-change (fn [e]
-                  (do
-                    (reset! query-str (-> e .-target .-value))
-                    (reset! query (query->map @query-str))))
-     :value     @query-str}]])
-
-(defn query-buttons []
-  [:div#query-buttons {:style {:text-align :center}}
-   [:button.btn.btn-primary
-    {:style    {:margin    10
-                :min-width 100}
-     :on-click (fn [_]
-                 (reset! result
-                         (apply-query
-                          @query
-                          (session/get :links))))}
-    "Evaluate"]
-   [:button.btn.btn-danger
-    {:style    {:margin    10
-                :min-width 100}
-     :on-click #'reset-all!}
-    "Reset"]])
-
-(defn query-display []
-  [:div#query-result
-   [:pre {:style {:background-color "#ededed"
-                  :padding          20
-                  :border-radius    4}}
-    (clj->json @query 2)]])
-
-(defn query-matches []
-  [:ul#matches
-   (for [link @result]
-     ^{:key (:id link)}
-     [:li
-      [:ul
-       [:li [:strong "Title: "] (:title link)]
-       [:li [:strong "Domain: "] (:domain link)]]])])
-
-(defn query-page []
-  [:div.container
-   [:div.row
-    [:div.col-md-6
-     [query-container]
-     [query-buttons]
-     [query-display]]
-    [:div.col-md-6
-     [query-matches]]]])
