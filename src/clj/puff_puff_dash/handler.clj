@@ -1,7 +1,7 @@
 (ns puff-puff-dash.handler
   (:require [compojure.core :refer [routes wrap-routes]]
             [puff-puff-dash.layout :refer [error-page]]
-            [puff-puff-dash.routes :refer [link-routes static-routes]]
+            [puff-puff-dash.routes :refer [link-routes static-routes tag-routes]]
             [compojure.route :as route]
             [puff-puff-dash.env :refer [defaults]]
             [mount.core :as mount]
@@ -14,6 +14,8 @@
 (def app-routes
   (routes
    (-> #'link-routes
+       (wrap-routes middleware/wrap-formats))
+   (-> #'tag-routes
        (wrap-routes middleware/wrap-formats))
    (-> #'static-routes
        (wrap-routes middleware/wrap-csrf)

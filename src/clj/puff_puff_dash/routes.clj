@@ -32,8 +32,14 @@
                 link           (merge link {:id         id
                                             :properties properties-str
                                             :source     source})]
-            (db/upsert-link! link)))
+            (db/create-link! link)))
         marshalled))))
+
+(defn tag-link! [link-id tag]
+  (let [tag-map {:link_id link-id
+                 :tag     tag
+                 :id      (gen-id)}]
+    (db/create-tag! tag-map)))
 
 (defroutes static-routes
   (GET "/" [] (layout/render "home.html")))
@@ -63,4 +69,24 @@
                        (layout/render-json {:success true
                                             :deleted (string/split ids #",")}))
                      (layout/render-json {:success false
-                                          :error   "Not implemented yet"})))))
+                                          :error   "Not implemented yet"})))
+           (context "/:id" [id]
+                    (GET "/" [] (layout/render-json {:id id}))
+                    (GET "/tags" []
+                         (layout/render-json {:tags
+                                              (map :tag (db/tags-for-link {:link_id id}))}))
+                    (POST "/tag/:tag" [tag]
+                          (layout/render-json
+                           (try
+                             (do
+                               (tag-link! id tag)
+                               {:success true
+                                :tagged  [id tag]})
+                             (catch Exception e
+                               {:success false
+                                :error   (str (.getNextException e))})))))))
+
+(def tag-routes
+  (context "/tags" []
+           (GET "/" []
+                (layout/render-json {:tags (db/get-tags)}))))
