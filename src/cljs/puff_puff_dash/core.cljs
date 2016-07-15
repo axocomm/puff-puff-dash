@@ -10,9 +10,6 @@
             [puff-puff-dash.link-query :as lq])
   (:import goog.History))
 
-(declare set-search!)
-(declare query-links)
-
 (def query-str (r/atom nil))
 (def query (r/atom {}))
 (def result (r/atom (session/get :links)))
@@ -23,8 +20,8 @@
     (reset! query {})
     (reset! query-str "")))
 
+;; -------------------------
 ;; Components
-
 (defn nav-link [uri title page collapsed?]
   [:li.nav-item
    {:class (when (= page (session/get :page)) "active")}
@@ -110,6 +107,7 @@
 
 (defn query-page []
   [:div.container
+   [:h1 "Search"]
    [:div.row
     [:div.col-md-6
      [query-container]
@@ -165,24 +163,6 @@
           {}
           mp))
 
-(defn query-str->query [query-str]
-  (reduce
-       (fn [acc term]
-         (let [[k v] (string/split term #":")]
-           (if-not (empty? v)
-             (assoc acc (keyword k) (name v))
-             acc)))
-       {}
-       (string/split query-str #" +")))
-
-(defn query-links [links query]
-  (.log js/console (str query))
-  (filter (fn [link]
-            (every? (fn [[k v]]
-                      (= (get link k) v))
-                    query))
-          links))
-
 ;; -------------------------
 ;; Initialize app
 (defn fetch-links! []
@@ -196,12 +176,6 @@
                        (reset-all!))
                      (.log js/console (get response "error"))))}))
 
-(defn set-search!
-  ([]
-   (set-search! ""))
-  ([query-str]
-   (session/put! :search-query (query-str->query query-str))))
-
 (defn mount-components []
   (r/render [#'navbar] (.getElementById js/document "navbar"))
   (r/render [#'page] (.getElementById js/document "app")))
@@ -209,6 +183,5 @@
 (defn init! []
   (load-interceptors!)
   (fetch-links!)
-  (set-search!)
   (hook-browser-navigation!)
   (mount-components))
