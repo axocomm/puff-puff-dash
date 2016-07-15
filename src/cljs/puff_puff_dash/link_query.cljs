@@ -18,12 +18,13 @@ If any error cases are encountered, just throw to catch in `query->map'"
         kw            (-> kw string/lower-case keyword)
         clause        (case kw
                         :where
-                        (let [[field cmp-str value] tokens
-                              cmp                   (case cmp-str
-                                                      "=" :equals
-                                                      "~" :like
-                                                      "/" :not-equals
-                                                      nil)]
+                        (let [[field cmp-str & value] tokens
+                              value                   (string/join " " value)
+                              cmp                     (case cmp-str
+                                                        "=" :equals
+                                                        "~" :like
+                                                        "/" :not-equals
+                                                        nil)]
                           (if cmp
                             {:cmp   cmp
                              :field field
