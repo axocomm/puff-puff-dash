@@ -94,6 +94,10 @@
     {:success false
      :error   "Invalid source"}))
 
+(defaction delete-link [link-id]
+  {:success true
+   :deleted (db/delete-link! {:id link-id})})
+
 (defaction get-tag-counts []
   {:success true
    :tags    (->> (db/get-tags)
@@ -135,13 +139,20 @@
   (context "/links" []
     (GET "/" {:keys [params]}
       (layout/render-json (get-links params)))
+
+    (GET "/:source" [source]
+      (layout/render-json (get-links {:source source})))
     (POST "/:source" {:keys [body params]}
       (let [links  (-> body slurp (json/read-str :key-fn keyword))
             source (:source params)]
         (layout/render-json (import-links links source))))
+
     (context "/:id" [id]
       (GET "/" []
         (layout/render-json (get-link id)))
+      (DELETE "/" []
+        (layout/render-json (delete-link id)))
+
       (GET "/tags" []
         (layout/render-json (get-tags-for-link id)))
       (POST "/tags/:tag" [tag]
