@@ -8,6 +8,7 @@
             [ajax.core :refer [GET POST]]
             [clojure.string :as string]
             [puff-puff-dash.link-query :as lq]
+            [puff-puff-dash.dashboards :as dashboards]
             [cognitect.transit :as t])
   (:import goog.History))
 
@@ -46,7 +47,8 @@
         [:a.navbar-brand {:href "#/"} "puff-puff-dash"]
         [:ul.nav.navbar-nav
          [nav-link "#/" "Home" :home collapsed?]
-         [nav-link "#/about" "About" :about collapsed?]]]])))
+         [nav-link "#/about" "About" :about collapsed?]
+         [nav-link "#/dashboards/videos" "Videos" :videos-dashboard collapsed?]]]])))
 
 (defn about-page []
   [:div.container
@@ -146,12 +148,20 @@ and in the case of reddit links, includes the subreddit."
          [link-item link])]
       [:span.error "No links haha"])]])
 
+(defn page-not-found []
+  [:div.container
+   [:span.error (str "Page " (name (session/get :page)) " not found")]])
+
 (def pages
-  {:home  #'home-page
-   :about #'about-page})
+  {:home             #'home-page
+   :about            #'about-page
+   :videos-dashboard #'dashboards/videos-dashboard
+   :images-dashboard #'dashboards/images-dashboard
+   :not-found        #'page-not-found})
 
 (defn page []
-  [(pages (session/get :page))])
+  [(or (pages (session/get :page))
+       (:not-found pages))])
 
 ;; -------------------------
 ;; Routes
@@ -162,6 +172,11 @@ and in the case of reddit links, includes the subreddit."
 
 (secretary/defroute "/about" []
   (session/put! :page :about))
+
+(secretary/defroute "/dashboards/:dashboard" {:as params}
+  (session/put! :page (-> (:dashboard params)
+                          (str "-dashboard")
+                          keyword)))
 
 ;; -------------------------
 ;; History
