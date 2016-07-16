@@ -7,7 +7,8 @@
             [puff-puff-dash.ajax :refer [load-interceptors!]]
             [ajax.core :refer [GET POST]]
             [clojure.string :as string]
-            [puff-puff-dash.link-query :as lq])
+            [puff-puff-dash.link-query :as lq]
+            [cognitect.transit :as t])
   (:import goog.History))
 
 (def query-str (r/atom nil))
@@ -19,6 +20,11 @@
     (reset! result (session/get :links))
     (reset! query {})
     (reset! query-str "")))
+
+(def r (t/reader :json))
+
+(defn from-json [s]
+  (t/read r s))
 
 ;; -------------------------
 ;; Components
@@ -172,7 +178,13 @@
                      (do
                        (session/put!
                         :links
-                        (map keywordize-keys (get response "links")))
+                        (->> (get response "links")
+                             (map keywordize-keys)
+                             (map (fn [link]
+                                    (assoc link :properties (-> link
+                                                                :properties
+                                                                from-json
+                                                                keywordize-keys))))))
                        (reset-all!))
                      (.log js/console (get response "error"))))}))
 
