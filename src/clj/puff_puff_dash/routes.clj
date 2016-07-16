@@ -4,7 +4,8 @@
             [ring.util.http-response :as response]
             [clojure.data.json :as json]
             [puff-puff-dash.db.core :refer [*db*] :as db]
-            [clojure.string :as string]))
+            [clojure.string :as string])
+  (:import java.sql.SQLException))
 
 (def link-sources
   {:reddit {:marshal-fn
@@ -20,6 +21,21 @@
 
 (defn gen-id []
   (str (java.util.UUID/randomUUID)))
+
+(defn keywordize-keys [m]
+  (reduce (fn [acc [k v]]
+            (assoc acc (keyword k) v))
+          {}
+          m))
+
+(defn map-val
+    ([f m]
+     (map-val f m {}))
+    ([f m init]
+     (reduce (fn [acc [k v]]
+               (assoc acc k (f v)))
+             init
+             m)))
 
 (defn import-links [links {:keys [source]}]
   (when-let [source-opts (get link-sources (keyword source))]
@@ -41,13 +57,63 @@
                  :id      (gen-id)}]
     (db/create-tag! tag-map)))
 
+(defmacro defaction [name args & body]
+  `(defn ~name ~args
+     (try
+       ~@body
+       (catch SQLException e#
+         {:success false
+          :error   (.getNextException e#)})
+       (catch Exception e#
+         {:success false
+          :error   (str (.getMessage e#))}))))
+
+(defn make-query-fn [query]
+  (fn [link]
+    (every? identity (map (fn [[key val]]
+                            (= (get link key) val))
+                          query))))
+
+(defn query-links [links query]
+  (filter (make-query-fn query) links))
+
+;; --------
+;; Handlers
+(defaction get-links [& [query]]
+  (let [links (db/get-links)]
+    (if query
+      {:success true
+       :links   (query-links links (keywordize-keys query))
+       :query   query}
+      {:success true
+       :links   links})))
+
+(defaction get-link [id]
+  (if-let [link (db/get-link {:id id})]
+    {:success true
+     :link    link}
+    {:success false
+     :error   "Link does not exist"}))
+
+(defaction get-tag-counts []
+  {:success true
+   :tags    (->> (db/get-tags)
+                 (group-by :tag)
+                 (map-val count))})
+
+(defaction get-tags-for-link [link-id]
+  (if (:success (get-link link-id))
+    {:success true
+     :tags    (map :tag (db/tags-for-link {:link_id link-id}))}
+    {:success false
+     :error   "Link does not exist"}))
+
 (defroutes static-routes
   (GET "/" [] (layout/render "home.html")))
 
 (def link-routes
   (context "/links" []
-           (GET "/" [] (layout/render-json {:success true
-                                            :links   (db/get-links)}))
+           (GET "/" {:keys [params]} (layout/render-json (get-links params)))
            (POST "/" {:keys [body params]}
                  (let [links  (-> body
                                   slurp
@@ -71,10 +137,8 @@
                      (layout/render-json {:success false
                                           :error   "Not implemented yet"})))
            (context "/:id" [id]
-                    (GET "/" [] (layout/render-json {:id id}))
-                    (GET "/tags" []
-                         (layout/render-json {:tags
-                                              (map :tag (db/tags-for-link {:link_id id}))}))
+                    (GET "/" [] (layout/render-json (get-link id)))
+                    (GET "/tags" [] (layout/render-json (get-tags-for-link id)))
                     (POST "/tag/:tag" [tag]
                           (layout/render-json
                            (try
@@ -89,4 +153,4 @@
 (def tag-routes
   (context "/tags" []
            (GET "/" []
-                (layout/render-json {:tags (db/get-tags)}))))
+                (layout/render-json (get-tag-counts)))))
