@@ -6,6 +6,10 @@ $config = {
     :password       => 'secretlol',
     :database       => 'ppd',
     :host_port      => 6432
+  },
+  :services => {
+    :server   => 'lein run',
+    :figwheel => 'lein figwheel'
   }
 }
 
@@ -56,5 +60,17 @@ docker run \
   -it --rm --link #{container_name}:#{image} #{image} psql -h postgres -U #{username}
 EOT
     sh cmd
+  end
+
+  desc 'Start services'
+  task :start do
+    commands = $config[:services].values
+    tmux_commands = commands[0..-2].map { 'tmux split' }
+    tmux_commands << commands.map.with_index do |c, i|
+      "tmux send-keys -t #{(i + 1)} '#{c}' Enter"
+    end
+
+    start_command = tmux_commands.join ' && '
+    sh start_command
   end
 end
