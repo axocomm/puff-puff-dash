@@ -3,6 +3,12 @@
 INSERT INTO links
 (id, external_id, title, url, domain, source, properties)
 VALUES (:id, :external_id, :title, :url, :domain, :source, :properties)
+ON CONFLICT (external_id) DO UPDATE SET
+   title = :title,
+   url = :url,
+   domain = :domain,
+   source = :source,
+   properties = :properties
 
 -- :name update-link! :! :n
 -- :doc update a link
@@ -33,6 +39,7 @@ WHERE id = :id
 INSERT INTO tags
 (id, link_id, tag)
 VALUES (:id, :link_id, :tag)
+ON CONFLICT (link_id, tag) DO NOTHING
 
 -- :name delete-tag! :! :n
 -- :doc delete a tag given a name and link ID
