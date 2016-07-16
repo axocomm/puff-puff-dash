@@ -18,6 +18,8 @@
                              link
                              [:subreddit :score])})}})
 
+(declare tag-link)
+
 (defn gen-id []
   (str (java.util.UUID/randomUUID)))
 
