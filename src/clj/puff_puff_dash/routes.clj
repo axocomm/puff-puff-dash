@@ -36,20 +36,6 @@
            init
            m)))
 
-(defn import-links [links {:keys [source]}]
-  (when-let [source-opts (get link-sources (keyword source))]
-    (let [marshal-fn (:marshal-fn source-opts)
-          marshalled (map marshal-fn links)]
-      (do
-        (doseq [link marshalled]
-          (let [properties-str (json/write-str (:properties link))
-                id             (gen-id)
-                link           (merge link {:id         id
-                                            :properties properties-str
-                                            :source     source})]
-            (db/create-link! link)))
-        marshalled))))
-
 (defn exception-message [e]
   (try
     (str (.getNextException e))
@@ -90,6 +76,23 @@
      :link    link}
     {:success false
      :error   "Link does not exist"}))
+
+(defaction import-links [links source]
+  (if-let [source-opts (get link-sources (keyword source))]
+    (let [marshal-fn (:marshal-fn source-opts)
+          marshalled (map marshal-fn links)]
+      (loop [[link & more] marshalled
+             total         0]
+        (if link
+          (let [id      (gen-id)
+                link    (merge link {:id     id
+                                     :source source})
+                created (db/create-link! link)]
+            (recur more (+ total created)))
+          {:success  true
+           :imported total})))
+    {:success false
+     :error   "Invalid source"}))
 
 (defaction get-tag-counts []
   {:success true
@@ -132,6 +135,10 @@
   (context "/links" []
     (GET "/" {:keys [params]}
       (layout/render-json (get-links params)))
+    (POST "/:source" {:keys [body params]}
+      (let [links  (-> body slurp (json/read-str :key-fn keyword))
+            source (:source params)]
+        (layout/render-json (import-links links source))))
     (context "/:id" [id]
       (GET "/" []
         (layout/render-json (get-link id)))
