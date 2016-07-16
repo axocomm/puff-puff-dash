@@ -77,20 +77,28 @@
     {:success false
      :error   "Link does not exist"}))
 
-(defaction import-links [links source]
+(defaction import-links [links {:keys [source tag]}]
   (if-let [source-opts (get link-sources (keyword source))]
     (let [marshal-fn (:marshal-fn source-opts)
           marshalled (map marshal-fn links)]
       (loop [[link & more] marshalled
-             total         0]
+             total         0
+             ids           []]
         (if link
           (let [id      (gen-id)
                 link    (merge link {:id     id
                                      :source source})
                 created (db/create-link! link)]
-            (recur more (+ total created)))
-          {:success  true
-           :imported total})))
+            (recur
+             more
+             (+ total created)
+             (conj ids id)))
+          (do
+            (when tag
+              (doseq [link-id ids]
+                (tag-link link-id tag)))
+            {:success  true
+             :imported total}))))
     {:success false
      :error   "Invalid source"}))
 
@@ -143,9 +151,8 @@
     (GET "/:source" [source]
       (layout/render-json (get-links {:source source})))
     (POST "/:source" {:keys [body params]}
-      (let [links  (-> body slurp (json/read-str :key-fn keyword))
-            source (:source params)]
-        (layout/render-json (import-links links source))))
+      (let [links (-> body slurp (json/read-str :key-fn keyword))]
+        (layout/render-json (import-links links params))))
 
     (context "/:id" [id]
       (GET "/" []
