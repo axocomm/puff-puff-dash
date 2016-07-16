@@ -29,13 +29,13 @@
           m))
 
 (defn map-val
-    ([f m]
-     (map-val f m {}))
-    ([f m init]
-     (reduce (fn [acc [k v]]
-               (assoc acc k (f v)))
-             init
-             m)))
+  ([f m]
+   (map-val f m {}))
+  ([f m init]
+   (reduce (fn [acc [k v]]
+             (assoc acc k (f v)))
+           init
+           m)))
 
 (defn import-links [links {:keys [source]}]
   (when-let [source-opts (get link-sources (keyword source))]
@@ -50,12 +50,6 @@
                                             :source     source})]
             (db/create-link! link)))
         marshalled))))
-
-(defn tag-link! [link-id tag]
-  (let [tag-map {:link_id link-id
-                 :tag     tag
-                 :id      (gen-id)}]
-    (db/create-tag! tag-map)))
 
 (defmacro defaction [name args & body]
   `(defn ~name ~args
@@ -108,49 +102,45 @@
     {:success false
      :error   "Link does not exist"}))
 
+(defaction tag-link [link-id tag]
+  (if-not (db/get-link {:id link-id})
+    {:success false
+     :error   "Link does not exist"}
+    (let [tag-rec {:id      (gen-id)
+                   :link_id link-id
+                   :tag     tag}]
+      (do
+        (db/create-tag! tag-rec)
+        {:success true
+         :tag     tag-rec}))))
+
+(defaction untag-link [link-id tag]
+  (if-not (db/get-link {:id link-id})
+    {:success false
+     :error   "Link does not exist"}
+    (let [result (db/delete-tag! {:link_id link-id
+                                  :tag     tag})]
+      {:success true
+       :deleted result})))
+
 (defroutes static-routes
   (GET "/" [] (layout/render "home.html")))
 
 (def link-routes
   (context "/links" []
-           (GET "/" {:keys [params]} (layout/render-json (get-links params)))
-           (POST "/" {:keys [body params]}
-                 (let [links  (-> body
-                                  slurp
-                                  (json/read-str :key-fn keyword))
-                       result (try
-                                (do
-                                  (import-links links params)
-                                  {:success  true
-                                   :imported (count links)})
-                                (catch Exception e
-                                  {:success false
-                                   :error   (str (.getNextException e))}))]
-                   (layout/render-json result)))
-           (DELETE "/" {:keys [params]}
-                   (if-let [ids (:ids params)]
-                     (do
-                       (doseq [id (string/split ids #",")]
-                         (db/delete-link! {:id id}))
-                       (layout/render-json {:success true
-                                            :deleted (string/split ids #",")}))
-                     (layout/render-json {:success false
-                                          :error   "Not implemented yet"})))
-           (context "/:id" [id]
-                    (GET "/" [] (layout/render-json (get-link id)))
-                    (GET "/tags" [] (layout/render-json (get-tags-for-link id)))
-                    (POST "/tag/:tag" [tag]
-                          (layout/render-json
-                           (try
-                             (do
-                               (tag-link! id tag)
-                               {:success true
-                                :tagged  [id tag]})
-                             (catch Exception e
-                               {:success false
-                                :error   (str (.getNextException e))})))))))
+    (GET "/" {:keys [params]}
+      (layout/render-json (get-links params)))
+    (context "/:id" [id]
+      (GET "/" []
+        (layout/render-json (get-link id)))
+      (GET "/tags" []
+        (layout/render-json (get-tags-for-link id)))
+      (POST "/tags/:tag" [tag]
+        (layout/render-json (tag-link id tag)))
+      (DELETE "/tags/:tag" [tag]
+        (layout/render-json (untag-link id tag))))))
 
 (def tag-routes
   (context "/tags" []
-           (GET "/" []
-                (layout/render-json (get-tag-counts)))))
+    (GET "/" []
+      (layout/render-json (get-tag-counts)))))
