@@ -1,7 +1,33 @@
 * API
-** /links
+** Routes
+*** /links
 - GET /
   Get everything
+- POST /
+  Merge links with given source
 - GET /source/:source
   Get links from source
 - GET /tag/:tag
+  Get links with tag
+**** /:id
+- GET /
+  Get by ID
+- PUT /
+  Update link
+- DELETE /
+  Delete link
+***** /tags
+- GET /
+  Get tags for this link
+- POST /:tag
+  Add tag to link
+- DELETE /:tag
+  Delete tag from link
+*** /tags
+- GET /
+  Get tags and number of links associated
+** Response
+- Routes will connect with handler functions
+  - These will call relevant functions and produce the actual response
+    containing success and any error or result information
+- All responses will be JSON besides static routes that render pages
