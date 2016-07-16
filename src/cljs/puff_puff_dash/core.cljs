@@ -54,6 +54,18 @@
     [:div.col-md-12
      "this is the story of puff-puff-dash... work in progress"]]])
 
+(defn link-meta
+  "Currently just displays the domain and source of the link,
+and in the case of reddit links, includes the subreddit."
+  [{:keys [domain source properties]}]
+  (let [link-source (case source
+                      "reddit" (str source "/" (:subreddit properties))
+                      source)]
+    [:div.link-meta
+     [:span.link-domain domain]
+     " - "
+     [:span.link-source link-source]]))
+
 (defn link-item [{:keys [title url id domain] :as link}]
   [:div.link-item {:id (str "link-" id)}
    [:a {:href   url
@@ -61,8 +73,7 @@
         :class  (str "domain-" domain)
         :target "_blank"}
     title]
-   [:div.link-meta
-    [:span.link-domain domain]]])
+   [link-meta link]])
 
 (defn query-container []
   [:div#query-container
