@@ -14,6 +14,11 @@ def container_running?(name)
   containers.include? name
 end
 
+def container_exists?(name)
+  containers = `docker ps -a | tail -n+2 | awk '{ print $NF }'`.split(/\n/)
+  containers.include? name
+end
+
 namespace :dev do
   desc 'Run the database container'
   task :run_db do
@@ -22,8 +27,11 @@ namespace :dev do
     image = $config[:db][:image]
     port = $config[:db][:host_port]
 
-    if container_running?(container_name)
-      puts 'Container already running'
+    case
+    when container_running?(container_name)
+      puts "Container '#{container_name}' already running"
+    when container_exists?(container_name)
+      sh "docker start #{container_name}"
     else
       cmd = <<-EOT
 docker run \
