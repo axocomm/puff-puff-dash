@@ -4,8 +4,7 @@
             [ring.util.http-response :as response]
             [clojure.data.json :as json]
             [puff-puff-dash.db.core :refer [*db*] :as db]
-            [clojure.string :as string])
-  (:import java.sql.SQLException))
+            [clojure.string :as string]))
 
 (def link-sources
   {:reddit {:marshal-fn
@@ -51,16 +50,19 @@
             (db/create-link! link)))
         marshalled))))
 
+(defn exception-message [e]
+  (try
+    (str (.getNextException e))
+    (catch Exception ee
+      (.getMessage e))))
+
 (defmacro defaction [name args & body]
   `(defn ~name ~args
      (try
        ~@body
-       (catch SQLException e#
-         {:success false
-          :error   (.getNextException e#)})
        (catch Exception e#
          {:success false
-          :error   (str (.getMessage e#))}))))
+          :error   (exception-message e#)}))))
 
 (defn make-query-fn [query]
   (fn [link]
