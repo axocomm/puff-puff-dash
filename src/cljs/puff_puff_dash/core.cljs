@@ -70,7 +70,9 @@ and in the case of reddit links, includes the subreddit."
   [:div.link-item {:id (str "link-" id)}
    [:a {:href   url
         :title  title
-        :class  (str "domain-" domain)
+        :class  (str "domain-" (if domain
+                                 (string/replace domain #"\." "-")
+                                 "none"))
         :target "_blank"}
     title]
    [link-meta link]])
