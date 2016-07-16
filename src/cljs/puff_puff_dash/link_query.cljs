@@ -76,13 +76,21 @@ clause types where, order, and limit."
 (defn ->where-fn
   "Return a function that performs the given comparison on a link."
   [{:keys [cmp field value]}]
-  (let [field (keyword field)]
+  (let [field    (keyword field)
+        accessor (fn [l f]
+                   (if-let [pk (->> f
+                                    name
+                                    (re-matches #"^([^\.]+)\.(.+)$")
+                                    last
+                                    keyword)]
+                     (get-in l [:properties pk])
+                     (get l f)))]
     (case cmp
-      :equals     #(= (get % field) value)
-      :not-equals #(not= (get % field) value)
+      :equals     #(= (accessor % field) value)
+      :not-equals #(not= (accessor % field) value)
       :like       (fn [link]
                     (re-find (re-pattern (str "(?i)" value))
-                             (or (get link field) ""))))))
+                             (or (accessor link field) ""))))))
 
 (defn matches-all?
   "Determine if the link satisfies all given predicates."
