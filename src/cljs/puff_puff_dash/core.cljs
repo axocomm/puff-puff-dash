@@ -9,7 +9,10 @@
             [clojure.string :as string]
             [puff-puff-dash.link-query :as lq]
             [puff-puff-dash.dashboards :as dashboards]
-            [cognitect.transit :as t])
+            [puff-puff-dash.helpers :as helpers]
+            [cljs-react-material-ui.core :as ui]
+            [cljs-react-material-ui.reagent :as rui]
+            [cljs-react-material-ui.icons :as ic])
   (:import goog.History))
 
 (def query-str (r/atom nil))
@@ -22,99 +25,101 @@
     (reset! query {})
     (reset! query-str "")))
 
-(def r (t/reader :json))
-
-(defn from-json [s]
-  (t/read r s))
-
 ;; -------------------------
 ;; Components
 (defn nav-link [uri title page collapsed?]
-  [:li.nav-item
+  [rui/menu-item
    {:class (when (= page (session/get :page)) "active")}
-   [:a.nav-link
-    {:href uri
-     :on-click #(reset! collapsed? true)} title]])
+   [:a {:href     uri
+        :title    title
+        :on-click #(reset! collapsed? true)
+        :style    {:text-decoration :none
+                   :color           "#000"}}
+    title]])
 
 (defn navbar []
   (let [collapsed? (r/atom true)]
     (fn []
-      [:nav.navbar.navbar-light.bg-faded
-       [:button.navbar-toggler.hidden-sm-up
-        {:on-click #(swap! collapsed? not)} "☰"]
-       [:div.collapse.navbar-toggleable-xs
-        (when-not @collapsed? {:class "in"})
-        [:a.navbar-brand {:href "#/"} "puff-puff-dash"]
-        [:ul.nav.navbar-nav
+      [rui/mui-theme-provider
+       {:mui-theme (ui/get-mui-theme)}
+       [:div.navbar
+        [rui/drawer
+         {:open              (not @collapsed?)
+          :docked            false
+          :on-request-change #(reset! collapsed? (not %))}
          [nav-link "#/" "Home" :home collapsed?]
          [nav-link "#/about" "About" :about collapsed?]
-         [nav-link "#/dashboards/videos" "Videos" :videos-dashboard collapsed?]]]])))
+         [nav-link "#/dashboards/videos" "Videos" :videos-dashboard collapsed?]
+         [nav-link "#/dashboards/images" "Images" :images-dashboard collapsed?]]
+        [rui/app-bar {:title                         "puff-puff-dash"
+                      :on-left-icon-button-touch-tap #(swap! collapsed? not)}]]])))
 
 (defn about-page []
-  [:div.container
+  [:div.content
    [:div.row
     [:div.col-md-12
      "this is the story of puff-puff-dash... work in progress"]]])
 
-(defn link-meta
-  "Currently just displays the domain and source of the link,
-and in the case of reddit links, includes the subreddit."
-  [{:keys [domain source properties]}]
-  (let [link-source (case source
-                      "reddit" (str source "/" (:subreddit properties))
-                      source)]
-    [:div.link-meta
-     [:span.link-domain domain]
-     " - "
-     [:span.link-source link-source]]))
+;; TODO maybe add embed in here?
+(defn link-display [link]
+  [:div
+   [:pre (lq/clj->json link 2)]]) ;; TODO helpers namespace for this kind of thing
 
-(defn link-item [{:keys [title url id domain] :as link}]
-  [:div.link-item {:id (str "link-" id)}
-   [:a {:href   url
-        :title  title
-        :class  (str "domain-" (if domain
-                                 (string/replace domain #"\." "-")
-                                 "none"))
-        :target "_blank"}
-    title]
-   [link-meta link]])
+(defn link-item [{:keys [title url id domain source properties] :as link}]
+  (let [class-domain (if domain
+                       (string/replace domain #"\." "-")
+                       "none")
+        link-source  (case source
+                       "reddit" (str source "/" (:subreddit properties))
+                       source)]
+    [rui/card
+     [rui/card-header {:title                  title
+                       :subtitle               link-source
+                       :act-as-expander        true
+                       :show-expandable-button true}]
+     [rui/card-text {:expandable true}
+      [link-display link]]
+     [rui/card-actions {:expandable true}
+      [rui/flat-button {:label    "Open"
+                        :on-click #(.open js/window url "_blank")}]]]))
 
-(defn query-container []
-  [:div#query-container
-   [:textarea.form-control
-    {:id        "query"
-     :style     {:font-family "monospace"}
-     :rows      6
-     :on-change (fn [e]
-                  (do
-                    (reset! query-str (-> e .-target .-value))
-                    (reset! query (lq/query->map @query-str))))
-     :value     @query-str}]])
+(defn query-input []
+  [:div.query-input
+   [rui/text-field
+    {:rows                8
+     :style               {:width "100%"}
+     :multi-line          true
+     :input-style         {:font-family :monospace}
+     :floating-label-text "Query"
+     :on-change           (fn [e]
+                            (do
+                              (reset! query-str (-> e .-target .-value))
+                              (reset! query (lq/query->map @query-str))))
+     :value               @query-str}]])
 
 (defn query-buttons []
-  [:div#query-buttons {:style {:text-align :center}}
-   [:button.btn.btn-primary
+  [:div.query-buttons {:style {:text-align :center}}
+   [rui/raised-button
     {:style    {:margin    10
                 :min-width 100}
      :on-click (fn [_]
                  (reset! result
                          (lq/apply-query
                           @query
-                          (session/get :links))))}
-    "Evaluate"]
-   [:button.btn.btn-danger
-    {:style    {:margin    10
-                :min-width 100}
-     :on-click #'reset-all!}
-    "Reset"]])
+                          (session/get :links))))
+     :label    "Evaluate"
+     :primary  true}]
+   [rui/raised-button
+    {:style     {:margin    10
+                 :min-width 100}
+     :on-click  #'reset-all!
+     :secondary true
+     :label     "Reset"}]])
 
 (defn query-display []
-  [:div#query-display
-   [:pre {:style {:background-color "#ededed"
-                  :padding          20
-                  :border-radius    4
-                  :height           300
-                  :overflow-y       :scroll}}
+  [:div.query-display
+   [:h3 "Parsed Query"]
+   [:pre {:style {:height 300}}
     (lq/clj->json @query 2)]])
 
 (defn query-matches []
@@ -126,27 +131,31 @@ and in the case of reddit links, includes the subreddit."
        [:li [:strong "Title: "] (:title link)]
        [:li [:strong "Domain: "] (:domain link)]]])])
 
-(defn query-page []
-  [:div.container
+(defn query-container []
+  [:div.query-container {:style {:display :inline}}
    [:h1 "Search"]
    [:div.row
-    [:div.col-md-6
-     [query-container]
-     [query-buttons]]
-    [:div.col-md-6
-     [query-display]]]])
+    [:div {:style {:float         :left
+                   :width         "45%"
+                   :padding-right 20}}
+     [query-input]
+     [query-buttons]]]
+   [:div
+    [query-display]]])
 
 (defn home-page []
-  [:div.container
-   [query-page]
-   [:div.links-container
-    [:h1 "All Links"]
-    (if-not (empty? @result)
-      [:div.links
-       (for [link @result]
-         ^{:key (:id link)}
-         [link-item link])]
-      [:span.error "No links haha"])]])
+  [rui/mui-theme-provider
+   {:mui-theme (ui/get-mui-theme)}
+   [:main.content
+    [query-container]
+    [:div.links-container
+     [:h1 "All Links"]
+     (if-not (empty? @result)
+       [:div.links
+        (for [link @result]
+          ^{:key (:id link)}
+          [link-item link])]
+       [:span.error "No links haha"])]]])
 
 (defn page-not-found []
   [:div.container
@@ -190,31 +199,24 @@ and in the case of reddit links, includes the subreddit."
     (.setEnabled true)))
 
 ;; -------------------------
-;; Helpers
-(defn keywordize-keys [mp]
-  (reduce (fn [acc [k v]]
-            (assoc acc (keyword k) v))
-          {}
-          mp))
-
-;; -------------------------
 ;; Initialize app
 (defn fetch-links! []
   (GET (str js/context "/links")
-       {:handler (fn [response]
-                   (if (get response "success")
-                     (do
-                       (session/put!
-                        :links
-                        (->> (get response "links")
-                             (map keywordize-keys)
-                             (map (fn [link]
-                                    (assoc link :properties (-> link
-                                                                :properties
-                                                                from-json
-                                                                keywordize-keys))))))
-                       (reset-all!))
-                     (.log js/console (get response "error"))))}))
+      {:params  {:limit 30}
+       :handler (fn [response]
+                  (if (get response "success")
+                    (do
+                      (session/put!
+                       :links
+                       (->> (get response "links")
+                            (map helpers/keywordize-keys)
+                            (map (fn [link]
+                                   (assoc link :properties (-> link
+                                                               :properties
+                                                               helpers/from-json
+                                                               helpers/keywordize-keys))))))
+                      (reset-all!))
+                    (.log js/console (get response "error"))))}))
 
 (defn mount-components []
   (r/render [#'navbar] (.getElementById js/document "navbar"))
