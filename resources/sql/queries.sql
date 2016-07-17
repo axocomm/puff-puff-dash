@@ -29,6 +29,12 @@ DELETE FROM links WHERE id = :id
 -- :doc get links
 SELECT * FROM links
 
+-- :name get-links-by-tag :? :*
+-- :doc get links tagged with the given tag
+SELECT l.* FROM links
+JOIN tags t ON t.link_id = l.id
+WHERE t.tag = :tag
+
 -- :name get-link :? :1
 -- :doc get a link
 SELECT * FROM links
