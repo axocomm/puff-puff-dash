@@ -38,20 +38,23 @@ $db = connect_db $config[:db]
 
 namespace :dev do
   namespace :db do
-    def pending_migrations
-      existing = Dir.glob('resources/migrations/*.up.sql').map do |f|
+    def existing_migrations
+      Dir.glob('resources/migrations/*.up.sql').map do |f|
         matches = /^(\d+)-([a-z-]+)\.up\.sql$/.match File.basename(f)
         if matches
           {
             :id   => matches[1],
-            :name => matches[2].gsub(/-/, ' ')
+            :name => matches[2].gsub(/-/, ' '),
+            :file => f
           }
         end
       end
+    end
 
+    def pending_migrations
       run = $db.query('select id from schema_migrations')
       run_ids = run.map { |r| r['id'] }.sort
-      existing.reject { |e| run_ids.include? e[:id] }
+      existing_migrations.reject { |e| run_ids.include? e[:id] }
     end
 
     desc 'Run the database container'
@@ -106,6 +109,14 @@ EOT
       else
         puts 'No migrations to run'
       end
+    end
+
+    desc 'Create a new migration'
+    task :new_migration, [:name] do |_, args|
+      fail 'Missing required name' if not args[:name]
+      sh "lein migratus create #{args[:name]}"
+      new_file = pending_migrations.sort_by { |m| m[:id] }.first[:file]
+      puts "Created #{new_file}"
     end
 
     desc 'Import links from a file'
