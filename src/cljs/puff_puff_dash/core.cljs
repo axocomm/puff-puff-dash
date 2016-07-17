@@ -9,7 +9,10 @@
             [clojure.string :as string]
             [puff-puff-dash.link-query :as lq]
             [puff-puff-dash.dashboards :as dashboards]
-            [cognitect.transit :as t])
+            [cognitect.transit :as t]
+            [cljs-react-material-ui.core :as ui]
+            [cljs-react-material-ui.reagent :as rui]
+            [cljs-react-material-ui.icons :as ic])
   (:import goog.History))
 
 (def query-str (r/atom nil))
@@ -30,25 +33,31 @@
 ;; -------------------------
 ;; Components
 (defn nav-link [uri title page collapsed?]
-  [:li.nav-item
+  [rui/menu-item
    {:class (when (= page (session/get :page)) "active")}
-   [:a.nav-link
-    {:href uri
-     :on-click #(reset! collapsed? true)} title]])
+   [:a {:href     uri
+        :title    title
+        :on-click #(reset! collapsed? true)
+        :style    {:text-decoration :none
+                   :color           "#000"}}
+    title]])
 
 (defn navbar []
   (let [collapsed? (r/atom true)]
     (fn []
-      [:nav.navbar.navbar-light.bg-faded
-       [:button.navbar-toggler.hidden-sm-up
-        {:on-click #(swap! collapsed? not)} "☰"]
-       [:div.collapse.navbar-toggleable-xs
-        (when-not @collapsed? {:class "in"})
-        [:a.navbar-brand {:href "#/"} "puff-puff-dash"]
-        [:ul.nav.navbar-nav
+      [rui/mui-theme-provider
+       {:mui-theme (ui/get-mui-theme)}
+       [:div.navbar
+        [rui/drawer
+         {:open              (not @collapsed?)
+          :docked            false
+          :on-request-change #(reset! collapsed? (not %))}
          [nav-link "#/" "Home" :home collapsed?]
          [nav-link "#/about" "About" :about collapsed?]
-         [nav-link "#/dashboards/videos" "Videos" :videos-dashboard collapsed?]]]])))
+         [nav-link "#/dashboards/videos" "Videos" :videos-dashboard collapsed?]
+         [nav-link "#/dashboards/images" "Images" :images-dashboard collapsed?]]
+        [rui/app-bar {:title                         "puff-puff-dash"
+                      :on-left-icon-button-touch-tap #(swap! collapsed? not)}]]])))
 
 (defn about-page []
   [:div.container
@@ -137,16 +146,18 @@ and in the case of reddit links, includes the subreddit."
      [query-display]]]])
 
 (defn home-page []
-  [:div.container
-   [query-page]
-   [:div.links-container
-    [:h1 "All Links"]
-    (if-not (empty? @result)
-      [:div.links
-       (for [link @result]
-         ^{:key (:id link)}
-         [link-item link])]
-      [:span.error "No links haha"])]])
+  [rui/mui-theme-provider
+   {:mui-theme (ui/get-mui-theme)}
+   [:main#content
+    [query-page]
+    [:div.links-container
+     [:h1 "All Links"]
+     (if-not (empty? @result)
+       [:div.links
+        (for [link @result]
+          ^{:key (:id link)}
+          [link-item link])]
+       [:span.error "No links haha"])]]])
 
 (defn page-not-found []
   [:div.container
