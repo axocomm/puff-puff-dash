@@ -2,12 +2,12 @@
   (:require [puff-puff-dash.db.core :refer [*db*] :as db]
             [puff-puff-dash.helpers :refer [defaction link-sources] :as helpers]))
 
-(defn tag-link [link-id tag]
+(defn tag! [link-id tag]
   (db/create-tag! {:id      (helpers/gen-id)
                    :link_id link-id
                    :tag     tag}))
 
-(defaction get-links [& [query]]
+(defaction all [& [query]]
   (let [links (db/get-links)
 
         limit (helpers/parse-int (:limit query))
@@ -25,14 +25,14 @@
      (when query {:query query})
      (when limit {:limit limit}))))
 
-(defaction get-link [id]
+(defaction by-id [id]
   (if-let [link (db/get-link {:id id})]
     {:success true
      :link    link}
     {:success false
      :error   "Link does not exist"}))
 
-(defaction import-links [links {:keys [source tag]}]
+(defaction import! [links {:keys [source tag]}]
   (if-let [source-opts (get helpers/link-sources (keyword source))]
     (let [marshal-fn (:marshal-fn source-opts)
           marshalled (map marshal-fn links)]
@@ -51,12 +51,12 @@
           (do
             (when tag
               (doseq [link-id ids]
-                (tag-link link-id tag)))
+                (tag! link-id tag)))
             {:success  true
              :imported total}))))
     {:success false
      :error   "Invalid source"}))
 
-(defaction delete-link [link-id]
+(defaction delete! [link-id]
   {:success true
    :deleted (db/delete-link! {:id link-id})})

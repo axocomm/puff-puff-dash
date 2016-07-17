@@ -2,20 +2,20 @@
   (:require [puff-puff-dash.db.core :refer [*db*] :as db]
             [puff-puff-dash.helpers :refer [defaction] :as helpers]))
 
-(defaction get-tag-counts []
+(defaction counts []
   {:success true
    :tags    (->> (db/get-tags)
                  (group-by :tag)
                  (helpers/map-val count))})
 
-(defaction get-tags-for-link [link-id]
+(defaction for-link [link-id]
   (if (db/get-link {:id link-id})
     {:success true
      :tags    (map :tag (db/tags-for-link {:link_id link-id}))}
     {:success false
      :error   "Link does not exist"}))
 
-(defaction tag-link [link-id tag]
+(defaction tag! [link-id tag]
   (if-not (db/get-link {:id link-id})
     {:success false
      :error   "Link does not exist"}
@@ -27,7 +27,7 @@
         {:success true
          :tag     tag-rec}))))
 
-(defaction untag-link [link-id tag]
+(defaction untag! [link-id tag]
   (if-not (db/get-link {:id link-id})
     {:success false
      :error   "Link does not exist"}

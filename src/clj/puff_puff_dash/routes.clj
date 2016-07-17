@@ -14,28 +14,28 @@
 (def link-routes
   (context "/links" []
     (GET "/" {:keys [params]}
-      (layout/render-json (links/get-links params)))
+      (layout/render-json (links/all params)))
 
     (GET "/:source" [source]
-      (layout/render-json (links/get-links {:source source})))
+      (layout/render-json (links/all {:source source})))
     (POST "/:source" {:keys [body params]}
       (let [links (-> body slurp (json/read-str :key-fn keyword))]
-        (layout/render-json (links/import-links links params))))
+        (layout/render-json (links/import! links params))))
 
     (context "/:id" [id]
       (GET "/" []
-        (layout/render-json (links/get-link id)))
+        (layout/render-json (links/by-id id)))
       (DELETE "/" []
-        (layout/render-json (links/delete-link id)))
+        (layout/render-json (links/delete! id)))
 
       (GET "/tags" []
-        (layout/render-json (tags/get-tags-for-link id)))
+        (layout/render-json (tags/for-link id)))
       (POST "/tags/:tag" [tag]
-        (layout/render-json (tags/tag-link id tag)))
+        (layout/render-json (tags/tag! id tag)))
       (DELETE "/tags/:tag" [tag]
-        (layout/render-json (tags/untag-link id tag))))))
+        (layout/render-json (tags/untag! id tag))))))
 
 (def tag-routes
   (context "/tags" []
     (GET "/" []
-      (layout/render-json (tags/get-tag-counts)))))
+      (layout/render-json (tags/counts)))))
