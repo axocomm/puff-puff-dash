@@ -46,3 +46,4 @@
 * Other
 ** Configuration
    - Use resources/config for Rake and services
+   - Maybe create playlists of links from the same domain?
