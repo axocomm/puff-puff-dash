@@ -54,71 +54,69 @@
   {:builds
    {:app
     {:source-paths ["src/cljc" "src/cljs" "env/dev/cljs"]
-     :figwheel true
+     :figwheel     true
      :compiler
-     {:main "puff-puff-dash.app"
-      :asset-path "/js/out"
-      :output-to "target/cljsbuild/public/js/app.js"
-      :output-dir "target/cljsbuild/public/js/out"
+     {:main          "puff-puff-dash.app"
+      :asset-path    "/js/out"
+      :output-to     "target/cljsbuild/public/js/app.js"
+      :output-dir    "target/cljsbuild/public/js/out"
       :optimizations :none
-      :source-map true
-      :pretty-print true}}
+      :source-map    true
+      :pretty-print  true}}
     :test
     {:source-paths ["src/cljc" "src/cljs" "test/cljs"]
      :compiler
-     {:output-to "target/test.js"
-      :main "puff-puff-dash.doo-runner"
+     {:output-to     "target/test.js"
+      :main          "puff-puff-dash.doo-runner"
       :optimizations :whitespace
-      :pretty-print true}}
+      :pretty-print  true}}
     :min
     {:source-paths ["src/cljc" "src/cljs" "env/prod/cljs"]
      :compiler
-     {:output-to "target/cljsbuild/public/js/app.js"
-      :output-dir "target/uberjar"
-      :externs ["react/externs/react.js"]
+     {:output-to     "target/cljsbuild/public/js/app.js"
+      :output-dir    "target/uberjar"
+      :externs       ["react/externs/react.js"]
       :optimizations :advanced
-      :pretty-print false
+      :pretty-print  false
       :closure-warnings
       {:externs-validation :off :non-standard-jsdoc :off}}}}}
 
   :figwheel
   {:http-server-root "public"
-   :nrepl-port 7002
-   :css-dirs ["resources/public/css"]
+   :nrepl-port       7002
+   :css-dirs         ["resources/public/css"]
    :nrepl-middleware [cemerick.piggieback/wrap-cljs-repl]}
 
-
   :profiles
-  {:uberjar {:omit-source true
-
-             :prep-tasks ["compile" ["cljsbuild" "once" "min"]]
-             :aot :all
-             :uberjar-name "puff-puff-dash.jar"
-             :source-paths ["env/prod/clj"]
+  {:uberjar {:omit-source    true
+             :prep-tasks     ["compile" ["cljsbuild" "once" "min"]]
+             :aot            :all
+             :uberjar-name   "puff-puff-dash.jar"
+             :source-paths   ["env/prod/clj"]
              :resource-paths ["env/prod/resources"]}
 
-   :dev           [:project/dev :profiles/dev]
-   :test          [:project/test :profiles/test]
+   :dev  [:project/dev :profiles/dev]
+   :test [:project/test :profiles/test]
 
-   :project/dev  {:dependencies [[prone "1.1.1"]
-                                 [ring/ring-mock "0.3.0"]
-                                 [ring/ring-devel "1.5.0"]
-                                 [pjstadig/humane-test-output "0.8.0"]
-                                 [doo "0.1.6"]
-                                 [binaryage/devtools "0.7.2"]
-                                 [figwheel-sidecar "0.5.4-7"]
-                                 [com.cemerick/piggieback "0.2.2-SNAPSHOT"]]
-                  :plugins      [[com.jakemccrary/lein-test-refresh "0.14.0"]
-                                 [lein-doo "0.1.6"]
-                                 [lein-figwheel "0.5.4-7"]
-                                 [org.clojure/clojurescript "1.9.93"]]
+   :project/dev {:dependencies [[prone "1.1.1"]
+                                [ring/ring-mock "0.3.0"]
+                                [ring/ring-devel "1.5.0"]
+                                [pjstadig/humane-test-output "0.8.0"]
+                                [doo "0.1.6"]
+                                [binaryage/devtools "0.7.2"]
+                                [figwheel-sidecar "0.5.4-7"]
+                                [com.cemerick/piggieback "0.2.2-SNAPSHOT"]]
+                 :plugins      [[com.jakemccrary/lein-test-refresh "0.14.0"]
+                                [lein-doo "0.1.6"]
+                                [lein-figwheel "0.5.4-7"]
+                                [org.clojure/clojurescript "1.9.93"]]
 
-                  :doo {:build "test"}
-                  :source-paths ["env/dev/clj" "test/clj"]
-                  :resource-paths ["env/dev/resources"]
-                  :repl-options {:init-ns user}
-                  :injections [(require 'pjstadig.humane-test-output)
-                               (pjstadig.humane-test-output/activate!)]}
-   :project/test {:resource-paths ["env/dev/resources" "env/test/resources"]}
-   :profiles/dev {}
+                 :doo            {:build "test"}
+                 :source-paths   ["env/dev/clj" "test/clj"]
+                 :resource-paths ["env/dev/resources"]
+                 :repl-options   {:init-ns user}
+                 :injections     [(require 'pjstadig.humane-test-output)
+                                  (pjstadig.humane-test-output/activate!)]}
+   :project/test  {:resource-paths ["env/dev/resources" "env/test/resources"]}
+   :profiles/dev  {}
    :profiles/test {}})

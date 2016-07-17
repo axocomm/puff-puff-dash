@@ -3,8 +3,6 @@
             [compojure.core :refer [defroutes context GET POST DELETE]]
             [ring.util.http-response :as response]
             [clojure.data.json :as json]
-            [puff-puff-dash.db.core :refer [*db*] :as db]
-            [clojure.string :as string]
             [puff-puff-dash.models.links :as links]
             [puff-puff-dash.models.tags :as tags]))
 

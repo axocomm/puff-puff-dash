@@ -89,7 +89,7 @@
     {:rows                8
      :style               {:width "100%"}
      :multi-line          true
-     :input-style         {:font-family :monospace}
+     :input-style         {:font-family "Roboto Mono, monospace"}
      :floating-label-text "Query"
      :on-change           (fn [e]
                             (do
