@@ -42,3 +42,7 @@
        in an image grid format
      - Music would support Soundcloud or YouTube embed on click
      - Videos from YouTube/Vimeo with popout player embeds
+
+* Other
+** Configuration
+   - Use resources/config for Rake and services
