@@ -67,6 +67,31 @@ EOT
     task :run_migrations do
       puts 'Lol'
     end
+
+    desc 'Import links from a file'
+    task :import, [:file, :source, :tag] do |t, args|
+      file = args[:file] or fail 'Missing file'
+      source = args[:source] or fail 'Missing source'
+      tag = args[:tag] or nil
+
+      # TODO config
+      host = 'localhost'
+      port = 3000
+      url = "http://#{host}:#{port}/links/#{source}"
+      if not tag.nil?
+        url += "?tag=#{tag}"
+      end
+
+      # TODO cmd_for command + hash of option keys and vals
+      cmd = <<-EOT
+curl \
+  -XPOST \
+  -H 'Content-Type: application/json' \
+  --data @#{file} \
+  #{url}
+EOT
+      sh cmd
+    end
   end
 
   desc 'Start services'
