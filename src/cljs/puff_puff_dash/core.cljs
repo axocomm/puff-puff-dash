@@ -201,20 +201,21 @@ and in the case of reddit links, includes the subreddit."
 ;; Initialize app
 (defn fetch-links! []
   (GET (str js/context "/links")
-       {:handler (fn [response]
-                   (if (get response "success")
-                     (do
-                       (session/put!
-                        :links
-                        (->> (get response "links")
-                             (map keywordize-keys)
-                             (map (fn [link]
-                                    (assoc link :properties (-> link
-                                                                :properties
-                                                                from-json
-                                                                keywordize-keys))))))
-                       (reset-all!))
-                     (.log js/console (get response "error"))))}))
+      {:params  {:limit 10}
+       :handler (fn [response]
+                  (if (get response "success")
+                    (do
+                      (session/put!
+                       :links
+                       (->> (get response "links")
+                            (map keywordize-keys)
+                            (map (fn [link]
+                                   (assoc link :properties (-> link
+                                                               :properties
+                                                               from-json
+                                                               keywordize-keys))))))
+                      (reset-all!))
+                    (.log js/console (get response "error"))))}))
 
 (defn mount-components []
   (r/render [#'navbar] (.getElementById js/document "navbar"))

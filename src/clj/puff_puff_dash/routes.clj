@@ -38,6 +38,14 @@
            init
            m)))
 
+(defn parse-int
+  "Try to parse an integer from the string or return nil."
+  [s]
+  (try
+    (Integer/parseInt s)
+    (catch Exception _
+      nil)))
+
 (defn exception-message [e]
   (try
     (str (.getNextException e))
@@ -64,13 +72,22 @@
 ;; --------
 ;; Handlers
 (defaction get-links [& [query]]
-  (let [links (db/get-links)]
-    (if query
-      {:success true
-       :links   (query-links links (keywordize-keys query))
-       :query   query}
-      {:success true
-       :links   links})))
+  (let [links (db/get-links)
+
+        limit (parse-int (:limit query))
+        query (dissoc (keywordize-keys query) :limit)
+
+        links (if query
+                (query-links links query)
+                links)
+        links (if limit
+                (take limit links)
+                links)]
+    (merge
+     {:success true
+      :links   links}
+     (when query {:query query})
+     (when limit {:limit limit}))))
 
 (defaction get-link [id]
   (if-let [link (db/get-link {:id id})]
