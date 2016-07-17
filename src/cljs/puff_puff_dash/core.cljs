@@ -88,42 +88,48 @@ and in the case of reddit links, includes the subreddit."
     title]
    [link-meta link]])
 
-(defn query-container []
-  [:div#query-container
-   [:textarea.form-control
-    {:id        "query"
-     :style     {:font-family "monospace"}
-     :rows      6
-     :on-change (fn [e]
-                  (do
-                    (reset! query-str (-> e .-target .-value))
-                    (reset! query (lq/query->map @query-str))))
-     :value     @query-str}]])
+(defn query-input []
+  [:div.query-input
+   [rui/text-field
+    {:rows                8
+     :style               {:width "100%"}
+     :multi-line          true
+     :input-style         {:font-family :monospace}
+     :floating-label-text "Query"
+     :on-change           (fn [e]
+                            (do
+                              (reset! query-str (-> e .-target .-value))
+                              (reset! query (lq/query->map @query-str))))
+     :value               @query-str}]])
 
 (defn query-buttons []
-  [:div#query-buttons {:style {:text-align :center}}
-   [:button.btn.btn-primary
+  [:div.query-buttons {:style {:text-align :center}}
+   [rui/raised-button
     {:style    {:margin    10
                 :min-width 100}
      :on-click (fn [_]
                  (reset! result
                          (lq/apply-query
                           @query
-                          (session/get :links))))}
-    "Evaluate"]
-   [:button.btn.btn-danger
-    {:style    {:margin    10
-                :min-width 100}
-     :on-click #'reset-all!}
-    "Reset"]])
+                          (session/get :links))))
+     :label    "Evaluate"
+     :primary  true}]
+   [rui/raised-button
+    {:style     {:margin    10
+                 :min-width 100}
+     :on-click  #'reset-all!
+     :secondary true
+     :label     "Reset"}]])
 
 (defn query-display []
-  [:div#query-display
+  [:div.query-display
+   [:h3 "Parsed Query"]
    [:pre {:style {:background-color "#ededed"
                   :padding          20
                   :border-radius    4
                   :height           300
-                  :overflow-y       :scroll}}
+                  :overflow-y       :scroll
+                  :font-family      :monospace}}
     (lq/clj->json @query 2)]])
 
 (defn query-matches []
@@ -136,14 +142,16 @@ and in the case of reddit links, includes the subreddit."
        [:li [:strong "Domain: "] (:domain link)]]])])
 
 (defn query-page []
-  [:div.container
+  [:div.query-container {:style {:display :inline}}
    [:h1 "Search"]
    [:div.row
-    [:div.col-md-6
-     [query-container]
-     [query-buttons]]
-    [:div.col-md-6
-     [query-display]]]])
+    [:div {:style {:float         :left
+                   :width         "45%"
+                   :padding-right 20}}
+     [query-input]
+     [query-buttons]]]
+   [:div
+    [query-display]]])
 
 (defn home-page []
   [rui/mui-theme-provider
