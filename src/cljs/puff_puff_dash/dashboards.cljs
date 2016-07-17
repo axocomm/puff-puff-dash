@@ -3,7 +3,10 @@
             [reagent.session :as session]
             [puff-puff-dash.link-query :as lq]
             [cognitect.transit :as t]
-            [clojure.string :as string]))
+            [clojure.string :as string]
+            [cljs-react-material-ui.core :as ui]
+            [cljs-react-material-ui.reagent :as rui]
+            [cljs-react-material-ui.icons :as ic]))
 
 (def dashboards
   {:videos {:queries [{:where [{:cmp   :equals
@@ -39,7 +42,13 @@
   [:div.container
    (if-let [links (query-for-dashboard (session/get :links)
                                        :videos)]
-     [:p (str "Got " (count links) " links")]
+     [:div#videos
+      [rui/mui-theme-provider
+       {:mui-theme (ui/get-mui-theme)}
+       [:div
+        [rui/app-bar {:title              "Foo"
+                      :icon-element-right (ui/icon-button
+                                           (ic/action-account-balance-wallet))}]]]]
      [:p "No links"])])
 
 (defn images-dashboard []

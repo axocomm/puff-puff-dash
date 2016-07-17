@@ -6,7 +6,8 @@
   :dependencies [[cljs-ajax "0.5.8"]
                  [secretary "1.2.3"]
                  [reagent-utils "0.1.9"]
-                 [reagent "0.6.0-rc"]
+                 [reagent "0.6.0-rc"
+                  :exclusions [cljsjs/react]]
                  [org.clojure/clojurescript "1.9.93" :scope "provided"]
                  [org.clojure/clojure "1.8.0"]
                  [selmer "1.0.7"]
@@ -30,7 +31,8 @@
                  [org.postgresql/postgresql "9.4-1206-jdbc4"]
                  [org.webjars/webjars-locator-jboss-vfs "0.1.0"]
                  [luminus-immutant "0.2.2"]
-                 [com.cognitect/transit-cljs "0.8.239"]]
+                 [com.cognitect/transit-cljs "0.8.239"]
+                 [cljs-react-material-ui "0.2.19"]]
 
   :min-lein-version "2.0.0"
 
