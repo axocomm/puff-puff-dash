@@ -2,7 +2,7 @@ body {
   font-family: 'Roboto', sans-serif;
 }
 
-#content {
+.content {
   max-width: 940px;
   margin: 0 auto;
   padding-top: 30px;

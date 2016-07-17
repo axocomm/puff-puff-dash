@@ -9,7 +9,7 @@
             [clojure.string :as string]
             [puff-puff-dash.link-query :as lq]
             [puff-puff-dash.dashboards :as dashboards]
-            [cognitect.transit :as t]
+            [puff-puff-dash.helpers :as helpers]
             [cljs-react-material-ui.core :as ui]
             [cljs-react-material-ui.reagent :as rui]
             [cljs-react-material-ui.icons :as ic])
@@ -24,11 +24,6 @@
     (reset! result (session/get :links))
     (reset! query {})
     (reset! query-str "")))
-
-(def r (t/reader :json))
-
-(defn from-json [s]
-  (t/read r s))
 
 ;; -------------------------
 ;; Components
@@ -60,7 +55,7 @@
                       :on-left-icon-button-touch-tap #(swap! collapsed? not)}]]])))
 
 (defn about-page []
-  [:div.container
+  [:div.content
    [:div.row
     [:div.col-md-12
      "this is the story of puff-puff-dash... work in progress"]]])
@@ -136,7 +131,7 @@
        [:li [:strong "Title: "] (:title link)]
        [:li [:strong "Domain: "] (:domain link)]]])])
 
-(defn query-page []
+(defn query-container []
   [:div.query-container {:style {:display :inline}}
    [:h1 "Search"]
    [:div.row
@@ -151,8 +146,8 @@
 (defn home-page []
   [rui/mui-theme-provider
    {:mui-theme (ui/get-mui-theme)}
-   [:main#content
-    [query-page]
+   [:main.content
+    [query-container]
     [:div.links-container
      [:h1 "All Links"]
      (if-not (empty? @result)
@@ -204,30 +199,22 @@
     (.setEnabled true)))
 
 ;; -------------------------
-;; Helpers
-(defn keywordize-keys [mp]
-  (reduce (fn [acc [k v]]
-            (assoc acc (keyword k) v))
-          {}
-          mp))
-
-;; -------------------------
 ;; Initialize app
 (defn fetch-links! []
   (GET (str js/context "/links")
-      {:params  {:limit 10}
+      {:params  {:limit 30}
        :handler (fn [response]
                   (if (get response "success")
                     (do
                       (session/put!
                        :links
                        (->> (get response "links")
-                            (map keywordize-keys)
+                            (map helpers/keywordize-keys)
                             (map (fn [link]
                                    (assoc link :properties (-> link
                                                                :properties
-                                                               from-json
-                                                               keywordize-keys))))))
+                                                               helpers/from-json
+                                                               helpers/keywordize-keys))))))
                       (reset-all!))
                     (.log js/console (get response "error"))))}))
 

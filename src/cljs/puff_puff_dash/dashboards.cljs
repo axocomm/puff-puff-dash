@@ -39,20 +39,15 @@
                             :context false}}])))
 
 (defn videos-dashboard []
-  [:div.container
+  [:div.content
    (if-let [links (query-for-dashboard (session/get :links)
                                        :videos)]
-     [:div#videos
-      [rui/mui-theme-provider
-       {:mui-theme (ui/get-mui-theme)}
-       [:div
-        [rui/app-bar {:title              "Foo"
-                      :icon-element-right (ui/icon-button
-                                           (ic/action-account-balance-wallet))}]]]]
+     [:div.dashboard-videos
+      "Not yet"]
      [:p "No links"])])
 
 (defn images-dashboard []
-  [:div.container
+  [:div.content
    (if-let [links (query-for-dashboard (session/get :links)
                                        :images)]
      (for [link (take 10 (filter :url links))]
