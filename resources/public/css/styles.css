@@ -25,3 +25,11 @@ h2 {
 h3 {
   font-size: 1.2em;
 }
+
+pre {
+  font-family: 'Roboto Mono', monospace;
+  background-color: #f3f3f3;
+  padding: 20px;
+  border-radius: 2px;
+  overflow-y: scroll;
+}

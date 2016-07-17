@@ -65,28 +65,28 @@
     [:div.col-md-12
      "this is the story of puff-puff-dash... work in progress"]]])
 
-(defn link-meta
-  "Currently just displays the domain and source of the link,
-and in the case of reddit links, includes the subreddit."
-  [{:keys [domain source properties]}]
-  (let [link-source (case source
-                      "reddit" (str source "/" (:subreddit properties))
-                      source)]
-    [:div.link-meta
-     [:span.link-domain domain]
-     " - "
-     [:span.link-source link-source]]))
+;; TODO maybe add embed in here?
+(defn link-display [link]
+  [:div
+   [:pre (lq/clj->json link 2)]]) ;; TODO helpers namespace for this kind of thing
 
-(defn link-item [{:keys [title url id domain] :as link}]
-  [:div.link-item {:id (str "link-" id)}
-   [:a {:href   url
-        :title  title
-        :class  (str "domain-" (if domain
-                                 (string/replace domain #"\." "-")
-                                 "none"))
-        :target "_blank"}
-    title]
-   [link-meta link]])
+(defn link-item [{:keys [title url id domain source properties] :as link}]
+  (let [class-domain (if domain
+                       (string/replace domain #"\." "-")
+                       "none")
+        link-source  (case source
+                       "reddit" (str source "/" (:subreddit properties))
+                       source)]
+    [rui/card
+     [rui/card-header {:title                  title
+                       :subtitle               link-source
+                       :act-as-expander        true
+                       :show-expandable-button true}]
+     [rui/card-text {:expandable true}
+      [link-display link]]
+     [rui/card-actions {:expandable true}
+      [rui/flat-button {:label    "Open"
+                        :on-click #(.open js/window url "_blank")}]]]))
 
 (defn query-input []
   [:div.query-input
@@ -124,12 +124,7 @@ and in the case of reddit links, includes the subreddit."
 (defn query-display []
   [:div.query-display
    [:h3 "Parsed Query"]
-   [:pre {:style {:background-color "#ededed"
-                  :padding          20
-                  :border-radius    4
-                  :height           300
-                  :overflow-y       :scroll
-                  :font-family      :monospace}}
+   [:pre {:style {:height 300}}
     (lq/clj->json @query 2)]])
 
 (defn query-matches []
