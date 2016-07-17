@@ -1,12 +1,14 @@
 GEM
   remote: https://rubygems.org/
   specs:
+    pg (0.18.4)
     rake (11.2.2)
 
 PLATFORMS
   ruby
 
 DEPENDENCIES
+  pg
   rake
 
 BUNDLED WITH

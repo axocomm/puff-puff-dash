@@ -1,3 +1,6 @@
+require 'pg'
+
+# TODO read from config.json?
 $config = {
   :db => {
     :container_name => 'ppd-db',
@@ -13,6 +16,14 @@ $config = {
   }
 }
 
+def connect_db(db_config)
+  PG.connect user:     db_config[:username], \
+             password: db_config[:password], \
+             dbname:   db_config[:database], \
+             port:     db_config[:host_port], \
+             host:     'localhost'
+end
+
 def container_running?(name)
   containers = `docker ps | tail -n+2 | awk '{ print $NF }'`.split(/\n/)
   containers.include? name
@@ -23,8 +34,26 @@ def container_exists?(name)
   containers.include? name
 end
 
+$db = connect_db $config[:db]
+
 namespace :dev do
   namespace :db do
+    def pending_migrations
+      existing = Dir.glob('resources/migrations/*.up.sql').map do |f|
+        matches = /^(\d+)-([a-z-]+)\.up\.sql$/.match File.basename(f)
+        if matches
+          {
+            :id   => matches[1],
+            :name => matches[2].gsub(/-/, ' ')
+          }
+        end
+      end
+
+      run = $db.query('select id from schema_migrations')
+      run_ids = run.map { |r| r['id'] }.sort
+      existing.reject { |e| run_ids.include? e[:id] }
+    end
+
     desc 'Run the database container'
     task :run do
       container_name = $config[:db][:container_name]
@@ -63,9 +92,20 @@ EOT
       sh cmd
     end
 
+    desc 'Show pending migrations'
+    task :show_pending do
+      pending_migrations.each do |m|
+        printf "%-16s%s\n" % [m[:id], m[:name]]
+      end
+    end
+
     desc 'Run pending migrations'
     task :run_migrations do
-      puts 'Lol'
+      if not pending_migrations.empty?
+        sh 'lein migratus'
+      else
+        puts 'No migrations to run'
+      end
     end
 
     desc 'Import links from a file'
