@@ -31,3 +31,18 @@
   - These will call relevant functions and produce the actual response
     containing success and any error or result information
 - All responses will be JSON besides static routes that render pages
+
+* Views
+** Index
+   Display all links and query box
+** Dashboards
+   - Ability to configure Dashboards
+     Specify set of criteria and display in a specific way
+     - Images would display sources of links from imgur, etc.
+       in an image grid format
+     - Music would support Soundcloud or YouTube embed on click
+     - Videos from YouTube/Vimeo with popout player embeds
+
+* Other
+** Configuration
+   - Use resources/config for Rake and services

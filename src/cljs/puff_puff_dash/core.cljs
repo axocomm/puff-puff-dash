@@ -7,7 +7,9 @@
             [puff-puff-dash.ajax :refer [load-interceptors!]]
             [ajax.core :refer [GET POST]]
             [clojure.string :as string]
-            [puff-puff-dash.link-query :as lq])
+            [puff-puff-dash.link-query :as lq]
+            [puff-puff-dash.dashboards :as dashboards]
+            [cognitect.transit :as t])
   (:import goog.History))
 
 (def query-str (r/atom nil))
@@ -19,6 +21,11 @@
     (reset! result (session/get :links))
     (reset! query {})
     (reset! query-str "")))
+
+(def r (t/reader :json))
+
+(defn from-json [s]
+  (t/read r s))
 
 ;; -------------------------
 ;; Components
@@ -40,7 +47,8 @@
         [:a.navbar-brand {:href "#/"} "puff-puff-dash"]
         [:ul.nav.navbar-nav
          [nav-link "#/" "Home" :home collapsed?]
-         [nav-link "#/about" "About" :about collapsed?]]]])))
+         [nav-link "#/about" "About" :about collapsed?]
+         [nav-link "#/dashboards/videos" "Videos" :videos-dashboard collapsed?]]]])))
 
 (defn about-page []
   [:div.container
@@ -48,15 +56,28 @@
     [:div.col-md-12
      "this is the story of puff-puff-dash... work in progress"]]])
 
+(defn link-meta
+  "Currently just displays the domain and source of the link,
+and in the case of reddit links, includes the subreddit."
+  [{:keys [domain source properties]}]
+  (let [link-source (case source
+                      "reddit" (str source "/" (:subreddit properties))
+                      source)]
+    [:div.link-meta
+     [:span.link-domain domain]
+     " - "
+     [:span.link-source link-source]]))
+
 (defn link-item [{:keys [title url id domain] :as link}]
   [:div.link-item {:id (str "link-" id)}
    [:a {:href   url
         :title  title
-        :class  (str "domain-" domain)
+        :class  (str "domain-" (if domain
+                                 (string/replace domain #"\." "-")
+                                 "none"))
         :target "_blank"}
     title]
-   [:div.link-meta
-    [:span.link-domain domain]]])
+   [link-meta link]])
 
 (defn query-container []
   [:div#query-container
@@ -127,12 +148,20 @@
          [link-item link])]
       [:span.error "No links haha"])]])
 
+(defn page-not-found []
+  [:div.container
+   [:span.error (str "Page " (name (session/get :page)) " not found")]])
+
 (def pages
-  {:home  #'home-page
-   :about #'about-page})
+  {:home             #'home-page
+   :about            #'about-page
+   :videos-dashboard #'dashboards/videos-dashboard
+   :images-dashboard #'dashboards/images-dashboard
+   :not-found        #'page-not-found})
 
 (defn page []
-  [(pages (session/get :page))])
+  [(or (pages (session/get :page))
+       (:not-found pages))])
 
 ;; -------------------------
 ;; Routes
@@ -143,6 +172,11 @@
 
 (secretary/defroute "/about" []
   (session/put! :page :about))
+
+(secretary/defroute "/dashboards/:dashboard" {:as params}
+  (session/put! :page (-> (:dashboard params)
+                          (str "-dashboard")
+                          keyword)))
 
 ;; -------------------------
 ;; History
@@ -172,7 +206,13 @@
                      (do
                        (session/put!
                         :links
-                        (map keywordize-keys (get response "links")))
+                        (->> (get response "links")
+                             (map keywordize-keys)
+                             (map (fn [link]
+                                    (assoc link :properties (-> link
+                                                                :properties
+                                                                from-json
+                                                                keywordize-keys))))))
                        (reset-all!))
                      (.log js/console (get response "error"))))}))
 
