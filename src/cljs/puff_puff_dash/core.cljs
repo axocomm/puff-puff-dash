@@ -42,7 +42,9 @@
     (fn []
       [rui/mui-theme-provider
        {:mui-theme (ui/get-mui-theme)}
-       [:div.navbar
+       [:div.navbar {:style {:position :fixed
+                             :width    "100%"
+                             :z-index  999}}
         [rui/drawer
          {:open              (not @collapsed?)
           :docked            false
@@ -118,9 +120,13 @@
 
 (defn query-display []
   [:div.query-display
-   [:h3 "Parsed Query"]
-   [:pre {:style {:height 300}}
-    (lq/clj->json @query 2)]])
+   [rui/tabs
+    [rui/tab {:label "JSON"}
+     [:pre {:style {:height 300}}
+      (lq/clj->json @query 2)]]
+    [rui/tab {:label "EDN"}
+     [:pre {:style {:height 300}}
+      (with-out-str (cljs.pprint/pprint @query))]]]])
 
 (defn query-matches []
   [:ul#matches
@@ -140,7 +146,8 @@
                    :padding-right 20}}
      [query-input]
      [query-buttons]]]
-   [:div
+   [:div {:style {:width "45%"
+                  :float :right}}
     [query-display]]])
 
 (defn home-page []
@@ -148,7 +155,7 @@
    {:mui-theme (ui/get-mui-theme)}
    [:main.content
     [query-container]
-    [:div.links-container
+    [:div.links-container {:style {:clear :both}}
      [:h1 "All Links"]
      (if-not (empty? @result)
        [:div.links
