@@ -3,7 +3,8 @@
             [puff-puff-dash.helpers :refer [defaction link-sources] :as helpers]
             [puff-puff-dash.query-helpers :as query-helpers]
             [clojure.walk :refer [keywordize-keys]]
-            [clojure.data.json :as json]))
+            [clojure.data.json :as json]
+            [clojure.set :as set]))
 
 (defn tag! [link-id tag]
   (db/create-tag! {:id      (helpers/gen-id)
@@ -65,8 +66,10 @@
              (conj ids id)))
           (do
             (when tag
-              (doseq [link-id ids]
-                (tag! link-id tag)))
+              (let [all-ids (set (map :id (db/get-links)))
+                    new-ids (set/intersection all-ids (set ids))]
+                (doseq [link-id new-ids]
+                  (tag! link-id tag))))
             {:success  true
              :imported total}))))
     {:success false
