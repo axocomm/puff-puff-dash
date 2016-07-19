@@ -17,4 +17,4 @@ services:
     environment:
       POSTGRES_PASSWORD: 'secretlol'
     volumes:
-      - ./.d_volumes/postgres/:/var/lib/postgresql/data/
+      - ~/.d_volumes/postgres/:/var/lib/postgresql/data/
