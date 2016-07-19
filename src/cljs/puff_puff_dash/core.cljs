@@ -20,6 +20,7 @@
 (def query-str (r/atom nil))
 (def params (r/atom {}))
 (def current-page (r/atom 1))
+(def more-links? (r/atom true))
 (def link-details (r/atom {}))
 
 (def page-size 20)
@@ -29,7 +30,8 @@
     (reset! params {})
     (reset! current-page 1)
     (reset! query-str "")
-    (reset! link-details {})))
+    (reset! link-details {})
+    (reset! more-links? true)))
 
 (defn load-link-details!
   "For now, just load link tags into `link-details'."
@@ -132,6 +134,7 @@
                  (.log js/console (str @params))
                  (when-not (:error @params)
                    (reset! current-page 1)
+                   (reset! more-links? true)
                    (fetch-links!)))
      :label    "Evaluate"
      :primary  true}]
@@ -183,6 +186,7 @@
                             :full-width true
                             :style      {:margin-top    20
                                          :margin-bottom 20}
+                            :disabled   (not @more-links?)
                             :on-click   (fn [_]
                                           (swap! current-page inc)
                                           (.log js/console (str @current-page))
@@ -240,7 +244,9 @@
                           (session/put! :links links)
                           (session/put!
                            :links
-                           (concat (session/get :links) links)))))
+                           (concat (session/get :links) links)))
+                        (when (< (count links) page-size)
+                          reset! more-links? false)))
                     (.log js/console (get response "error"))))}))
 
 (defn mount-components []
