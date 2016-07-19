@@ -19,7 +19,7 @@
 
 (def query-str (r/atom nil))
 (def params (r/atom {}))
-(def offset (r/atom 0))
+(def current-page (r/atom 1))
 (def link-details (r/atom {}))
 
 (def page-size 20)
@@ -27,7 +27,7 @@
 (defn reset-all! []
   (do
     (reset! params {})
-    (reset! offset 0)
+    (reset! current-page 1)
     (reset! query-str "")
     (reset! link-details {})))
 
@@ -131,6 +131,7 @@
      :on-click (fn [_]
                  (.log js/console (str @params))
                  (when-not (:error @params)
+                   (reset! current-page 1)
                    (fetch-links!)))
      :label    "Evaluate"
      :primary  true}]
@@ -152,15 +153,6 @@
     [rui/tab {:label "EDN"}
      [:pre {:style {:height 300}}
       (with-out-str (cljs.pprint/pprint @params))]]]])
-
-(defn query-matches []
-  [:ul#matches
-   (for [link (session/get :links)]
-     ^{:key (:id link)}
-     [:li
-      [:ul
-       [:li [:strong "Title: "] (:title link)]
-       [:li [:strong "Domain: "] (:domain link)]]])])
 
 (defn query-container []
   [:div.query-container {:style {:display :inline}}
@@ -186,7 +178,15 @@
        [:div.links
         (for [link (session/get :links)]
           ^{:key (:id link)}
-          [link-item link])]
+          [link-item link])
+        [rui/raised-button {:label      "Next Page"
+                            :full-width true
+                            :style      {:margin-top    20
+                                         :margin-bottom 20}
+                            :on-click   (fn [_]
+                                          (swap! current-page inc)
+                                          (.log js/console (str @current-page))
+                                          (fetch-links!))}]]
        [:span.error "No links haha"])]]])
 
 (defn page-not-found []
@@ -228,16 +228,19 @@
 (defn fetch-links! []
   (POST (str js/context "/links")
       {:params  (merge {:limit  page-size
-                        :offset @offset}
+                        :offset (* page-size (dec @current-page))}
                        @params)
        :format  :json
        :handler (fn [response]
                   (if (get response "success")
                     (do
-                      (session/put!
-                       :links
-                       (->> (get response "links")
-                            (map keywordize-keys))))
+                      (let [links (->> (get response "links")
+                                       (map keywordize-keys))]
+                        (if (= @current-page 1)
+                          (session/put! :links links)
+                          (session/put!
+                           :links
+                           (concat (session/get :links) links)))))
                     (.log js/console (get response "error"))))}))
 
 (defn mount-components []
