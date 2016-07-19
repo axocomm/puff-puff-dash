@@ -18,12 +18,24 @@
 (def query-str (r/atom nil))
 (def query (r/atom {}))
 (def result (r/atom (session/get :links)))
+(def link-details (r/atom {}))
 
 (defn reset-all! []
   (do
     (reset! result (session/get :links))
     (reset! query {})
-    (reset! query-str "")))
+    (reset! query-str "")
+    (reset! link-details {})))
+
+(defn load-link-details!
+  "For now, just load link tags into `link-details'."
+  [id]
+  (GET (str js/context "/links/" id "/tags")
+      {:handler (fn [response]
+                  (if (get response "success")
+                    (swap! link-details assoc id {:tags (get response "tags")})
+                    (.log js/console (str "Could not get link details: " (or (get response "error")
+                                                                             "unknown error")))))}))
 
 ;; -------------------------
 ;; Components
@@ -42,7 +54,9 @@
     (fn []
       [rui/mui-theme-provider
        {:mui-theme (ui/get-mui-theme)}
-       [:div.navbar
+       [:div.navbar {:style {:position :fixed
+                             :width    "100%"
+                             :z-index  999}}
         [rui/drawer
          {:open              (not @collapsed?)
           :docked            false
@@ -65,14 +79,20 @@
   [:div
    [:pre (lq/clj->json link 2)]]) ;; TODO helpers namespace for this kind of thing
 
-(defn link-item [{:keys [title url id domain source properties] :as link}]
+(defn link-tags [tags]
+  [:div.link-tags
+   (str "Tags: " (string/join ", " tags))])
+
+(defn link-item [{:keys [title url id domain source properties tags] :as link}]
   (let [class-domain (if domain
                        (string/replace domain #"\." "-")
                        "none")
         link-source  (case source
                        "reddit" (str source "/" (:subreddit properties))
                        source)]
-    [rui/card
+    [rui/card {:on-expand-change (fn [_]
+                                   (when-not (contains? @link-details id)
+                                     (load-link-details! id)))}
      [rui/card-header {:title                  title
                        :subtitle               link-source
                        :act-as-expander        true
@@ -81,7 +101,11 @@
       [link-display link]]
      [rui/card-actions {:expandable true}
       [rui/flat-button {:label    "Open"
-                        :on-click #(.open js/window url "_blank")}]]]))
+                        :on-click #(.open js/window url "_blank")}]
+      [rui/flat-button {:label "Dead"
+                        :style {:color "#a00"}}]
+      (when-let [details (get @link-details id)]
+        [link-tags (:tags details)])]]))
 
 (defn query-input []
   [:div.query-input
@@ -118,9 +142,13 @@
 
 (defn query-display []
   [:div.query-display
-   [:h3 "Parsed Query"]
-   [:pre {:style {:height 300}}
-    (lq/clj->json @query 2)]])
+   [rui/tabs
+    [rui/tab {:label "JSON"}
+     [:pre {:style {:height 300}}
+      (lq/clj->json @query 2)]]
+    [rui/tab {:label "EDN"}
+     [:pre {:style {:height 300}}
+      (with-out-str (cljs.pprint/pprint @query))]]]])
 
 (defn query-matches []
   [:ul#matches
@@ -140,7 +168,8 @@
                    :padding-right 20}}
      [query-input]
      [query-buttons]]]
-   [:div
+   [:div {:style {:width "45%"
+                  :float :right}}
     [query-display]]])
 
 (defn home-page []
@@ -148,7 +177,7 @@
    {:mui-theme (ui/get-mui-theme)}
    [:main.content
     [query-container]
-    [:div.links-container
+    [:div.links-container {:style {:clear :both}}
      [:h1 "All Links"]
      (if-not (empty? @result)
        [:div.links
