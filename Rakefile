@@ -193,6 +193,8 @@ namespace :prod do
     ]
 
     remote_commands = [
+      'docker-compose down',
+      'docker-compose build',
       'docker-compose up -d'
     ].map { |c| "cd #{path} && #{c}" }
 
