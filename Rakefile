@@ -78,7 +78,7 @@ namespace :dev do
       else
         cmd = <<-EOT
 docker run \
-  --name #{container_name} -e POSTGRES_PASSWORD=#{password} -d -p #{port}:5432 #{image}
+  --name #{container_name} -e POSTGRES_PASSWORD=#{password} -d -p 127.0.0.1:#{port}:5432 #{image}
 EOT
         sh cmd
       end
