@@ -22,14 +22,14 @@
                                 :field :domain
                                 :value "imgur"}]}]}})
 
-(defn query-for-dashboard [links type]
+#_(defn query-for-dashboard [links type]
   (when-let [queries (:queries (get dashboards type))]
     (->> queries
          (map #(lq/apply-query {:clauses %} links))
          (apply concat)
          set)))
 
-(defn image-link [{:keys [domain url] :as link}]
+#_(defn image-link [{:keys [domain url] :as link}]
   (if (= domain "i.imgur.com")
     [:img {:src url}]
     (let [imgur-id (last (string/split url #"/"))]
@@ -38,7 +38,7 @@
                     :data  {:id      imgur-id
                             :context false}}])))
 
-(defn videos-dashboard []
+#_(defn videos-dashboard []
   [:div.content
    (if-let [links (query-for-dashboard (session/get :links)
                                        :videos)]
@@ -46,7 +46,7 @@
       "Not yet"]
      [:p "No links"])])
 
-(defn images-dashboard []
+#_(defn images-dashboard []
   [:div.content
    (if-let [links (query-for-dashboard (session/get :links)
                                        :images)]

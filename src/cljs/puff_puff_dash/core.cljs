@@ -8,7 +8,6 @@
             [ajax.core :refer [GET POST]]
             [clojure.string :as string]
             [puff-puff-dash.link-query :as lq]
-            [puff-puff-dash.dashboards :as dashboards]
             [puff-puff-dash.helpers :as helpers]
             [cljs-react-material-ui.core :as ui]
             [cljs-react-material-ui.reagent :as rui]
@@ -62,9 +61,7 @@
           :docked            false
           :on-request-change #(reset! collapsed? (not %))}
          [nav-link "#/" "Home" :home collapsed?]
-         [nav-link "#/about" "About" :about collapsed?]
-         [nav-link "#/dashboards/videos" "Videos" :videos-dashboard collapsed?]
-         [nav-link "#/dashboards/images" "Images" :images-dashboard collapsed?]]
+         [nav-link "#/about" "About" :about collapsed?]]
         [rui/app-bar {:title                         "puff-puff-dash"
                       :on-left-icon-button-touch-tap #(swap! collapsed? not)}]]])))
 
@@ -191,11 +188,9 @@
    [:span.error (str "Page " (name (session/get :page)) " not found")]])
 
 (def pages
-  {:home             #'home-page
-   :about            #'about-page
-   :videos-dashboard #'dashboards/videos-dashboard
-   :images-dashboard #'dashboards/images-dashboard
-   :not-found        #'page-not-found})
+  {:home      #'home-page
+   :about     #'about-page
+   :not-found #'page-not-found})
 
 (defn page []
   [(or (pages (session/get :page))
@@ -210,11 +205,6 @@
 
 (secretary/defroute "/about" []
   (session/put! :page :about))
-
-(secretary/defroute "/dashboards/:dashboard" {:as params}
-  (session/put! :page (-> (:dashboard params)
-                          (str "-dashboard")
-                          keyword)))
 
 ;; -------------------------
 ;; History
