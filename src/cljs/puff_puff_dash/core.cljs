@@ -12,7 +12,8 @@
             [cljs-react-material-ui.core :as ui]
             [cljs-react-material-ui.reagent :as rui]
             [cljs-react-material-ui.icons :as ic]
-            [clojure.walk :refer [keywordize-keys]])
+            [clojure.walk :refer [keywordize-keys]]
+            [cljs.pprint :refer [pprint]])
   (:import goog.History))
 
 (declare fetch-links!)
@@ -20,6 +21,7 @@
 (def query-str (r/atom nil))
 (def params (r/atom {}))
 (def current-page (r/atom 1))
+(def more-links? (r/atom true))
 (def link-details (r/atom {}))
 
 (def page-size 20)
@@ -29,7 +31,8 @@
     (reset! params {})
     (reset! current-page 1)
     (reset! query-str "")
-    (reset! link-details {})))
+    (reset! link-details {})
+    (reset! more-links? true)))
 
 (defn load-link-details!
   "For now, just load link tags into `link-details'."
@@ -132,6 +135,7 @@
                  (.log js/console (str @params))
                  (when-not (:error @params)
                    (reset! current-page 1)
+                   (reset! more-links? true)
                    (fetch-links!)))
      :label    "Evaluate"
      :primary  true}]
@@ -152,7 +156,7 @@
       (lq/clj->json @params 2)]]
     [rui/tab {:label "EDN"}
      [:pre {:style {:height 300}}
-      (with-out-str (cljs.pprint/pprint @params))]]]])
+      (with-out-str (pprint @params))]]]])
 
 (defn query-container []
   [:div.query-container {:style {:display :inline}}
@@ -183,6 +187,7 @@
                             :full-width true
                             :style      {:margin-top    20
                                          :margin-bottom 20}
+                            :disabled   (not @more-links?)
                             :on-click   (fn [_]
                                           (swap! current-page inc)
                                           (.log js/console (str @current-page))
@@ -240,7 +245,9 @@
                           (session/put! :links links)
                           (session/put!
                            :links
-                           (concat (session/get :links) links)))))
+                           (concat (session/get :links) links)))
+                        (when (< (count links) page-size)
+                          reset! more-links? false)))
                     (.log js/console (get response "error"))))}))
 
 (defn mount-components []

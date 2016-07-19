@@ -1,18 +1,32 @@
 require 'pg'
+require 'net/ssh'
 
 # TODO read from config.json?
 $config = {
   :db => {
-    :container_name => 'ppd-db',
-    :image          => 'postgres',
-    :username       => 'postgres',
-    :password       => 'secretlol',
-    :database       => 'ppd',
-    :host_port      => 6432
+    :container_name      => 'ppd-db',
+    :prod_container_name => 'puffpuffdash_db_1',
+    :image               => 'postgres',
+    :username            => 'postgres',
+    :password            => 'secretlol',
+    :database            => 'ppd',
+    :host                => 'localhost',
+    :host_port           => 6432
   },
   :services => {
     :server   => 'lein run',
     :figwheel => 'lein figwheel'
+  },
+  :deploy => {
+    :db => {
+      :container_name => 'puffpuffdash_db_1',
+      :username       => 'postgres',
+      :password       => 'secretlol',
+    },
+    :remote_path => '/home/deploy/puff-puff-dash',
+    :remote_user => 'deploy',
+    :ssh_port    => 2222,
+    :host        => 'ppd.intern.xyzyxyzy.xyz'
   }
 }
 
@@ -21,7 +35,7 @@ def connect_db(db_config)
              password: db_config[:password], \
              dbname:   db_config[:database], \
              port:     db_config[:host_port], \
-             host:     'localhost'
+             host:     db_config[:host]
 end
 
 def container_running?(name)
@@ -78,7 +92,7 @@ namespace :dev do
       else
         cmd = <<-EOT
 docker run \
-  --name #{container_name} -e POSTGRES_PASSWORD=#{password} -d -p #{port}:5432 #{image}
+  --name #{container_name} -e POSTGRES_PASSWORD=#{password} -d -p 127.0.0.1:#{port}:5432 #{image}
 EOT
         sh cmd
       end
@@ -161,5 +175,51 @@ EOT
 
     start_command = tmux_commands.join ' && '
     sh start_command
+  end
+end
+
+namespace :prod do
+  desc 'Deploy to remote'
+  task :deploy do
+    port = $config[:deploy][:ssh_port]
+    user = $config[:deploy][:remote_user]
+    host = $config[:deploy][:host]
+    path = $config[:deploy][:remote_path]
+    ssh_options = { :port => port, :verbose => :error }
+
+    commands = [
+      'lein uberjar',
+      "rsync -rave 'ssh -p#{port}' --exclude='.git/' . #{user}@#{host}:#{path}"
+    ]
+
+    remote_commands = [
+      'docker-compose down',
+      'docker-compose build',
+      'docker-compose up -d'
+    ].map { |c| "cd #{path} && #{c}" }
+
+    sh commands.join(' && ') unless ENV['NO_SYNC']
+    Net::SSH.start(host, user, ssh_options) do |ssh|
+      remote_commands.each { |c| puts ssh.exec!(c) }
+      ssh.loop
+    end
+  end
+
+  namespace :db do
+    desc 'Run a prod psql shell'
+    task :shell do
+      container_name = $config[:deploy][:db][:container_name]
+      password = $config[:deploy][:db][:password]
+      username = $config[:deploy][:db][:username]
+
+      raise 'Database container not running' unless container_running?(container_name)
+
+      cmd = <<-EOT
+PGPASSWORD=#{password} \
+docker exec \
+  -it #{container_name} psql -h localhost -U #{username}
+EOT
+      sh cmd
+    end
   end
 end

@@ -1,0 +1,4 @@
+FROM postgres:latest
+
+ADD resources/migrations/*.up.sql /migrations/
+ADD resources/bin/create-db /docker-entrypoint-initdb.d/init-ppd-db.sh
