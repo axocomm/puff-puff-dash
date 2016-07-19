@@ -130,7 +130,8 @@
                 :min-width 100}
      :on-click (fn [_]
                  (.log js/console (str @params))
-                 (fetch-links!))
+                 (when-not (:error @params)
+                   (fetch-links!)))
      :label    "Evaluate"
      :primary  true}]
    [rui/raised-button
