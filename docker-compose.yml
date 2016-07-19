@@ -1,0 +1,20 @@
+version: '2'
+services:
+  web:
+    build: .
+    ports:
+      - '127.0.0.1:3104:3000'
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: 'jdbc:postgresql://db:5432/ppd?user=postgres&password=secretlol'
+  db:
+    build:
+      context: .
+      dockerfile: Dockerfile-db
+    ports:
+      - '127.0.0.1:6432:5432'
+    environment:
+      POSTGRES_PASSWORD: 'secretlol'
+    volumes:
+      - ./.d_volumes/postgres/:/var/lib/postgresql/data/

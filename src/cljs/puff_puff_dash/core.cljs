@@ -12,7 +12,8 @@
             [cljs-react-material-ui.core :as ui]
             [cljs-react-material-ui.reagent :as rui]
             [cljs-react-material-ui.icons :as ic]
-            [clojure.walk :refer [keywordize-keys]])
+            [clojure.walk :refer [keywordize-keys]]
+            [cljs.pprint :refer [pprint]])
   (:import goog.History))
 
 (declare fetch-links!)
@@ -155,7 +156,7 @@
       (lq/clj->json @params 2)]]
     [rui/tab {:label "EDN"}
      [:pre {:style {:height 300}}
-      (with-out-str (cljs.pprint/pprint @params))]]]])
+      (with-out-str (pprint @params))]]]])
 
 (defn query-container []
   [:div.query-container {:style {:display :inline}}

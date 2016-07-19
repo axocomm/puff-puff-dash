@@ -17,7 +17,9 @@
 
 (defstate ^:dynamic *db*
   :start (conman/connect!
-          {:jdbc-url (env :database-url)})
+          {:jdbc-url (or
+                      (env :DATABASE_URL)
+                      (env :database-url))})
   :stop (conman/disconnect! *db*))
 
 (conman/bind-connection *db* "sql/queries.sql")

@@ -1,0 +1,14 @@
+#!/bin/bash
+
+set -e
+
+psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" <<-EOSQL
+    CREATE DATABASE ppd;
+EOSQL
+
+for f in /migrations/*.sql; do
+    psql -v ON_ERROR_STOP=1 \
+         --username "$POSTGRES_USER" \
+         -f $f \
+         ppd
+done
