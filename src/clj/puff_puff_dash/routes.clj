@@ -1,6 +1,6 @@
 (ns puff-puff-dash.routes
   (:require [puff-puff-dash.layout :as layout]
-            [compojure.core :refer [defroutes context GET POST DELETE]]
+            [compojure.core :refer [defroutes context GET POST DELETE ANY]]
             [ring.util.http-response :as response]
             [clojure.data.json :as json]
             [puff-puff-dash.models.links :as links]
@@ -11,8 +11,13 @@
 
 (def link-routes
   (context "/links" []
-    (GET "/" {:keys [params]}
-      (layout/render-json (links/all params)))
+    (ANY "/" {:keys [body]}
+      (let [input  (slurp body)
+            params (if-not (empty? input)
+                     (json/read-str input :key-fn keyword)
+                     {})
+            links  (links/all params)]
+        (layout/render-json links)))
 
     (GET "/:source" [source]
       (layout/render-json (links/all {:source source})))

@@ -8,22 +8,26 @@
             [ajax.core :refer [GET POST]]
             [clojure.string :as string]
             [puff-puff-dash.link-query :as lq]
-            [puff-puff-dash.dashboards :as dashboards]
             [puff-puff-dash.helpers :as helpers]
             [cljs-react-material-ui.core :as ui]
             [cljs-react-material-ui.reagent :as rui]
-            [cljs-react-material-ui.icons :as ic])
+            [cljs-react-material-ui.icons :as ic]
+            [clojure.walk :refer [keywordize-keys]])
   (:import goog.History))
 
+(declare fetch-links!)
+
 (def query-str (r/atom nil))
-(def query (r/atom {}))
-(def result (r/atom (session/get :links)))
+(def params (r/atom {}))
+(def offset (r/atom 0))
 (def link-details (r/atom {}))
+
+(def page-size 20)
 
 (defn reset-all! []
   (do
-    (reset! result (session/get :links))
-    (reset! query {})
+    (reset! params {})
+    (reset! offset 0)
     (reset! query-str "")
     (reset! link-details {})))
 
@@ -62,9 +66,7 @@
           :docked            false
           :on-request-change #(reset! collapsed? (not %))}
          [nav-link "#/" "Home" :home collapsed?]
-         [nav-link "#/about" "About" :about collapsed?]
-         [nav-link "#/dashboards/videos" "Videos" :videos-dashboard collapsed?]
-         [nav-link "#/dashboards/images" "Images" :images-dashboard collapsed?]]
+         [nav-link "#/about" "About" :about collapsed?]]
         [rui/app-bar {:title                         "puff-puff-dash"
                       :on-left-icon-button-touch-tap #(swap! collapsed? not)}]]])))
 
@@ -118,7 +120,7 @@
      :on-change           (fn [e]
                             (do
                               (reset! query-str (-> e .-target .-value))
-                              (reset! query (lq/query->map @query-str))))
+                              (reset! params (lq/query->map @query-str))))
      :value               @query-str}]])
 
 (defn query-buttons []
@@ -127,16 +129,17 @@
     {:style    {:margin    10
                 :min-width 100}
      :on-click (fn [_]
-                 (reset! result
-                         (lq/apply-query
-                          @query
-                          (session/get :links))))
+                 (.log js/console (str @params))
+                 (when-not (:error @params)
+                   (fetch-links!)))
      :label    "Evaluate"
      :primary  true}]
    [rui/raised-button
     {:style     {:margin    10
                  :min-width 100}
-     :on-click  #'reset-all!
+     :on-click  (fn [_]
+                  (reset-all!)
+                  (fetch-links!))
      :secondary true
      :label     "Reset"}]])
 
@@ -145,14 +148,14 @@
    [rui/tabs
     [rui/tab {:label "JSON"}
      [:pre {:style {:height 300}}
-      (lq/clj->json @query 2)]]
+      (lq/clj->json @params 2)]]
     [rui/tab {:label "EDN"}
      [:pre {:style {:height 300}}
-      (with-out-str (cljs.pprint/pprint @query))]]]])
+      (with-out-str (cljs.pprint/pprint @params))]]]])
 
 (defn query-matches []
   [:ul#matches
-   (for [link @result]
+   (for [link (session/get :links)]
      ^{:key (:id link)}
      [:li
       [:ul
@@ -179,9 +182,9 @@
     [query-container]
     [:div.links-container {:style {:clear :both}}
      [:h1 "All Links"]
-     (if-not (empty? @result)
+     (if-not (empty? (session/get :links))
        [:div.links
-        (for [link @result]
+        (for [link (session/get :links)]
           ^{:key (:id link)}
           [link-item link])]
        [:span.error "No links haha"])]]])
@@ -191,11 +194,9 @@
    [:span.error (str "Page " (name (session/get :page)) " not found")]])
 
 (def pages
-  {:home             #'home-page
-   :about            #'about-page
-   :videos-dashboard #'dashboards/videos-dashboard
-   :images-dashboard #'dashboards/images-dashboard
-   :not-found        #'page-not-found})
+  {:home      #'home-page
+   :about     #'about-page
+   :not-found #'page-not-found})
 
 (defn page []
   [(or (pages (session/get :page))
@@ -211,11 +212,6 @@
 (secretary/defroute "/about" []
   (session/put! :page :about))
 
-(secretary/defroute "/dashboards/:dashboard" {:as params}
-  (session/put! :page (-> (:dashboard params)
-                          (str "-dashboard")
-                          keyword)))
-
 ;; -------------------------
 ;; History
 ;; must be called after routes have been defined
@@ -230,21 +226,18 @@
 ;; -------------------------
 ;; Initialize app
 (defn fetch-links! []
-  (GET (str js/context "/links")
-      {:params  {:limit 30}
+  (POST (str js/context "/links")
+      {:params  (merge {:limit  page-size
+                        :offset @offset}
+                       @params)
+       :format  :json
        :handler (fn [response]
                   (if (get response "success")
                     (do
                       (session/put!
                        :links
                        (->> (get response "links")
-                            (map helpers/keywordize-keys)
-                            (map (fn [link]
-                                   (assoc link :properties (-> link
-                                                               :properties
-                                                               helpers/from-json
-                                                               helpers/keywordize-keys))))))
-                      (reset-all!))
+                            (map keywordize-keys))))
                     (.log js/console (get response "error"))))}))
 
 (defn mount-components []
