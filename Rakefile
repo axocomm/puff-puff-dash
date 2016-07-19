@@ -1,4 +1,5 @@
 require 'pg'
+require 'net/ssh'
 
 # TODO read from config.json?
 $config = {
@@ -15,6 +16,17 @@ $config = {
   :services => {
     :server   => 'lein run',
     :figwheel => 'lein figwheel'
+  },
+  :deploy => {
+    :db => {
+      :container_name => 'puffpuffdash_db_1',
+      :username       => 'postgres',
+      :password       => 'secretlol',
+    },
+    :remote_path => '/home/deploy/puff-puff-dash',
+    :remote_user => 'deploy',
+    :ssh_port    => 2222,
+    :host        => 'ppd.intern.xyzyxyzy.xyz'
   }
 }
 
@@ -167,16 +179,36 @@ EOT
 end
 
 namespace :prod do
-  namespace :deploy do
+  desc 'Deploy to remote'
+  task :deploy do
+    port = $config[:deploy][:ssh_port]
+    user = $config[:deploy][:remote_user]
+    host = $config[:deploy][:host]
+    path = $config[:deploy][:remote_path]
+    ssh_options = { :port => port, :verbose => :error }
 
+    commands = [
+      'lein uberjar',
+      "rsync -rave 'ssh -p#{port}' --exclude='.git/' . #{user}@#{host}:#{path}"
+    ]
+
+    remote_commands = [
+      'docker-compose up -d'
+    ].map { |c| "cd #{path} && #{c}" }
+
+    sh commands.join(' && ') unless ENV['NO_SYNC']
+    Net::SSH.start(host, user, ssh_options) do |ssh|
+      remote_commands.each { |c| puts ssh.exec!(c) }
+      ssh.loop
+    end
   end
 
   namespace :db do
     desc 'Run a prod psql shell'
     task :shell do
-      container_name = $config[:db][:prod_container_name]
-      password = $config[:db][:password]
-      username = $config[:db][:username]
+      container_name = $config[:deploy][:db][:container_name]
+      password = $config[:deploy][:db][:password]
+      username = $config[:deploy][:db][:username]
 
       raise 'Database container not running' unless container_running?(container_name)
 

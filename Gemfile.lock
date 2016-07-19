@@ -1,6 +1,7 @@
 GEM
   remote: https://rubygems.org/
   specs:
+    net-ssh (3.2.0)
     pg (0.18.4)
     rake (11.2.2)
 
@@ -8,6 +9,7 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
+  net-ssh
   pg
   rake
 
