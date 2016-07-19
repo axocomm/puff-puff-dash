@@ -247,7 +247,7 @@
                            :links
                            (concat (session/get :links) links)))
                         (when (< (count links) page-size)
-                          reset! more-links? false)))
+                          (reset! more-links? false))))
                     (.log js/console (get response "error"))))}))
 
 (defn mount-components []
