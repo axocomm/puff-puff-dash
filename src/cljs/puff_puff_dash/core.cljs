@@ -14,15 +14,19 @@
             [cljs-react-material-ui.icons :as ic])
   (:import goog.History))
 
+(declare fetch-links!)
+
 (def query-str (r/atom nil))
-(def query (r/atom {}))
-(def result (r/atom (session/get :links)))
+(def params (r/atom {}))
+(def offset (r/atom 0))
 (def link-details (r/atom {}))
+
+(def page-size 20)
 
 (defn reset-all! []
   (do
-    (reset! result (session/get :links))
-    (reset! query {})
+    (reset! params {})
+    (reset! offset 0)
     (reset! query-str "")
     (reset! link-details {})))
 
@@ -115,7 +119,7 @@
      :on-change           (fn [e]
                             (do
                               (reset! query-str (-> e .-target .-value))
-                              (reset! query (lq/query->map @query-str))))
+                              (reset! params (lq/query->map @query-str))))
      :value               @query-str}]])
 
 (defn query-buttons []
@@ -124,16 +128,16 @@
     {:style    {:margin    10
                 :min-width 100}
      :on-click (fn [_]
-                 (reset! result
-                         (lq/apply-query
-                          @query
-                          (session/get :links))))
+                 (.log js/console (str @params))
+                 (fetch-links!))
      :label    "Evaluate"
      :primary  true}]
    [rui/raised-button
     {:style     {:margin    10
                  :min-width 100}
-     :on-click  #'reset-all!
+     :on-click  (fn [_]
+                  (reset-all!)
+                  (fetch-links!))
      :secondary true
      :label     "Reset"}]])
 
@@ -142,14 +146,14 @@
    [rui/tabs
     [rui/tab {:label "JSON"}
      [:pre {:style {:height 300}}
-      (lq/clj->json @query 2)]]
+      (lq/clj->json @params 2)]]
     [rui/tab {:label "EDN"}
      [:pre {:style {:height 300}}
-      (with-out-str (cljs.pprint/pprint @query))]]]])
+      (with-out-str (cljs.pprint/pprint @params))]]]])
 
 (defn query-matches []
   [:ul#matches
-   (for [link @result]
+   (for [link (session/get :links)]
      ^{:key (:id link)}
      [:li
       [:ul
@@ -176,9 +180,9 @@
     [query-container]
     [:div.links-container {:style {:clear :both}}
      [:h1 "All Links"]
-     (if-not (empty? @result)
+     (if-not (empty? (session/get :links))
        [:div.links
-        (for [link @result]
+        (for [link (session/get :links)]
           ^{:key (:id link)}
           [link-item link])]
        [:span.error "No links haha"])]]])
@@ -220,21 +224,17 @@
 ;; -------------------------
 ;; Initialize app
 (defn fetch-links! []
-  (GET (str js/context "/links")
-      {:params  {:limit 30}
+  (POST (str js/context "/links")
+      {:params  (merge {:limit page-size}
+                       @params)
+       :format  :json
        :handler (fn [response]
                   (if (get response "success")
                     (do
                       (session/put!
                        :links
                        (->> (get response "links")
-                            (map helpers/keywordize-keys)
-                            (map (fn [link]
-                                   (assoc link :properties (-> link
-                                                               :properties
-                                                               helpers/from-json
-                                                               helpers/keywordize-keys))))))
-                      (reset-all!))
+                            (map helpers/keywordize-keys))))
                     (.log js/console (get response "error"))))}))
 
 (defn mount-components []
