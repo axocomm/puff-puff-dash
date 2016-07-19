@@ -3,12 +3,14 @@ require 'pg'
 # TODO read from config.json?
 $config = {
   :db => {
-    :container_name => 'ppd-db',
-    :image          => 'postgres',
-    :username       => 'postgres',
-    :password       => 'secretlol',
-    :database       => 'ppd',
-    :host_port      => 6432
+    :container_name      => 'ppd-db',
+    :prod_container_name => 'puffpuffdash_db_1',
+    :image               => 'postgres',
+    :username            => 'postgres',
+    :password            => 'secretlol',
+    :database            => 'ppd',
+    :host                => 'localhost',
+    :host_port           => 6432
   },
   :services => {
     :server   => 'lein run',
@@ -21,7 +23,7 @@ def connect_db(db_config)
              password: db_config[:password], \
              dbname:   db_config[:database], \
              port:     db_config[:host_port], \
-             host:     'localhost'
+             host:     db_config[:host]
 end
 
 def container_running?(name)
@@ -161,5 +163,29 @@ EOT
 
     start_command = tmux_commands.join ' && '
     sh start_command
+  end
+end
+
+namespace :prod do
+  namespace :deploy do
+
+  end
+
+  namespace :db do
+    desc 'Run a prod psql shell'
+    task :shell do
+      container_name = $config[:db][:prod_container_name]
+      password = $config[:db][:password]
+      username = $config[:db][:username]
+
+      raise 'Database container not running' unless container_running?(container_name)
+
+      cmd = <<-EOT
+PGPASSWORD=#{password} \
+docker exec \
+  -it #{container_name} psql -h localhost -U #{username}
+EOT
+      sh cmd
+    end
   end
 end
