@@ -11,8 +11,13 @@
 
 (def link-routes
   (context "/links" []
-    (GET "/" {:keys [params]}
-      (layout/render-json (links/all params)))
+    (GET "/" {:keys [body]}
+      (let [input  (slurp body)
+            params (if-not (empty? input)
+                     (json/read-str input :key-fn keyword)
+                     {})
+            links  (links/all params)]
+        (layout/render-json links)))
 
     (GET "/:source" [source]
       (layout/render-json (links/all {:source source})))
