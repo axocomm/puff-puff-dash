@@ -34,7 +34,13 @@ def container_exists?(name)
   containers.include? name
 end
 
-$db = connect_db $config[:db]
+begin
+  $db = connect_db $config[:db]
+rescue Exception => e
+  puts 'No database connection'
+  puts e.message if ENV['DEBUG']
+  $db = nil
+end
 
 namespace :dev do
   namespace :db do
