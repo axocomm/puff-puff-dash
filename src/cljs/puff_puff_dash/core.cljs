@@ -11,7 +11,8 @@
             [puff-puff-dash.helpers :as helpers]
             [cljs-react-material-ui.core :as ui]
             [cljs-react-material-ui.reagent :as rui]
-            [cljs-react-material-ui.icons :as ic])
+            [cljs-react-material-ui.icons :as ic]
+            [clojure.walk :refer [keywordize-keys]])
   (:import goog.History))
 
 (declare fetch-links!)
@@ -234,7 +235,7 @@
                       (session/put!
                        :links
                        (->> (get response "links")
-                            (map helpers/keywordize-keys))))
+                            (map keywordize-keys))))
                     (.log js/console (get response "error"))))}))
 
 (defn mount-components []
