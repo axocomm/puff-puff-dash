@@ -16,23 +16,29 @@
     link))
 
 (defaction all [& [params]]
-  (let [{:keys [query limit order]} params
-        _                           (when-not (query-helpers/valid-query? query)
-                                      (throw (Exception. "Invalid query")))
-
-        links                       (db/get-links)
-        links                       (map parse-properties links)
-        links                       (if query
-                                      (query-helpers/apply-query links query)
-                                      links)
-        links                       (if limit
-                                      (take limit links)
-                                      links)]
+  (let [{:keys [query limit order offset]} params
+        _                                  (when-not (query-helpers/valid-query? query)
+                                             (throw (Exception. "Invalid query")))
+        links                              (if (:tagged query)
+                                             (db/get-links-by-tag
+                                              {:tag (first (:tagged query))})
+                                             (db/get-links))
+        links                              (map parse-properties links)
+        links                              (if query
+                                             (query-helpers/apply-query links query)
+                                             links)
+        links                              (if offset
+                                             (drop offset links)
+                                             links)
+        links                              (if limit
+                                             (take limit links)
+                                             links)]
     (merge {:success true
             :links   links}
            (when query {:query query})
            (when limit {:limit limit})
-           (when order {:order order}))))
+           (when order {:order order})
+           (when offset {:offset offset}))))
 
 (defaction by-id [id]
   (if-let [link (db/get-link {:id id})]

@@ -31,7 +31,7 @@ SELECT * FROM links
 
 -- :name get-links-by-tag :? :*
 -- :doc get links tagged with the given tag
-SELECT l.* FROM links
+SELECT l.* FROM links l
 JOIN tags t ON t.link_id = l.id
 WHERE t.tag = :tag
 

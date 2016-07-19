@@ -48,6 +48,10 @@ If any error cases are encountered, just throw to catch in `query->map'"
                             (throw (js/Error "Invalid limit"))
                             {:limit limit}))
 
+                        :tagged
+                        (let [tags tokens]
+                          {:tags tags})
+
                         (throw (js/Error (str "Invalid clause type " (name kw)))))]
     (assoc clause :type kw)))
 
@@ -55,13 +59,17 @@ If any error cases are encountered, just throw to catch in `query->map'"
   "Transform the query string into a map containing keys for
 clause types where, order, and limit."
   [query-string]
-  (let [lines                       (string/split query-string #"\n")
-        {:keys [where order limit]} (->> lines
-                                         (map ->clause)
-                                         (group-by :type))
-        params                      (merge {:order (first order)
-                                            :limit (-> limit first :limit)}
-                                           (when where {:query {:where where}}))]
+  (let [lines                              (string/split query-string #"\n")
+        {:keys [where order limit tagged]} (->> lines
+                                                (map ->clause)
+                                                (group-by :type))
+        query                              (merge {}
+                                                  (when where {:where where})
+                                                  (when tagged
+                                                    {:tagged (-> tagged first :tags)}))
+        params                             {:order (first order)
+                                            :limit (-> limit first :limit)
+                                            :query query}]
     (into {} (filter val params))))
 
 (defn query->map

@@ -227,7 +227,8 @@
 ;; Initialize app
 (defn fetch-links! []
   (POST (str js/context "/links")
-      {:params  (merge {:limit page-size}
+      {:params  (merge {:limit  page-size
+                        :offset @offset}
                        @params)
        :format  :json
        :handler (fn [response]
