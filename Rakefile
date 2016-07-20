@@ -51,8 +51,7 @@ end
 begin
   $db = connect_db $config[:db]
 rescue Exception => e
-  puts 'No database connection'
-  puts e.message if ENV['DEBUG']
+  puts "Could not connect to database: #{e.message}" if ENV['DEBUG']
   $db = nil
 end
 
@@ -117,6 +116,7 @@ EOT
 
     desc 'Show pending migrations'
     task :show_pending do
+      raise 'No database connection' if $db.nil?
       pending_migrations.each do |m|
         printf "%-16s%s\n" % [m[:id], m[:name]]
       end
@@ -124,6 +124,7 @@ EOT
 
     desc 'Run pending migrations'
     task :run_migrations do
+      raise 'No database connection' if $db.nil?
       if not pending_migrations.empty?
         sh 'lein migratus'
       else
@@ -208,6 +209,8 @@ namespace :prod do
   namespace :db do
     desc 'Run a prod psql shell'
     task :shell do
+      raise 'No database connection' if $db.nil?
+
       container_name = $config[:deploy][:db][:container_name]
       password = $config[:deploy][:db][:password]
       username = $config[:deploy][:db][:username]
