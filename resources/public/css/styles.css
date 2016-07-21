@@ -51,6 +51,11 @@ pre {
   width: 45%;
 }
 
+.link-media-embed {
+  text-align: center;
+  padding: 40px;
+}
+
 /** Responsive **/
 @media (max-width: 720px) {
   .query-container h1,
