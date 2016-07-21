@@ -108,7 +108,7 @@ EOT
       username = $config[:db][:username]
       image = $config[:db][:image]
 
-      raise 'Database container not running' unless container_running?(container_name)
+      fail 'Database container not running' unless container_running?(container_name)
 
       cmd = <<-EOT
 docker run \
@@ -120,7 +120,7 @@ EOT
 
     desc 'Show pending migrations'
     task :show_pending do
-      raise 'No database connection' if $db.nil?
+      fail 'No database connection' if $db.nil?
       pending_migrations.each do |m|
         printf "%-16s%s\n" % [m[:id], m[:name]]
       end
@@ -128,7 +128,7 @@ EOT
 
     desc 'Run pending migrations'
     task :run_migrations do
-      raise 'No database connection' if $db.nil?
+      fail 'No database connection' if $db.nil?
       if not pending_migrations.empty?
         sh 'lein migratus'
       else
@@ -213,13 +213,13 @@ namespace :prod do
   namespace :db do
     desc 'Run a prod psql shell'
     task :shell do
-      raise 'No database connection' if $db.nil?
+      fail 'No database connection' if $db.nil?
 
       container_name = $config[:deploy][:db][:container_name]
       password = $config[:deploy][:db][:password]
       username = $config[:deploy][:db][:username]
 
-      raise 'Database container not running' unless container_running?(container_name)
+      fail 'Database container not running' unless container_running?(container_name)
 
       cmd = <<-EOT
 PGPASSWORD=#{password} \
