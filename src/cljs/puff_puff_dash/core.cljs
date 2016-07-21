@@ -112,8 +112,8 @@
       (when-let [details (get @link-details id)]
         [link-tags (:tags details)])]]))
 
-(defn query-input []
-  [:div.query-input
+(defn query-editor []
+  [:div.query-editor
    [rui/text-field
     {:rows                8
      :style               {:width "100%"}
@@ -148,6 +148,11 @@
      :secondary true
      :label     "Reset"}]])
 
+(defn query-input []
+  [:div.query-input
+   [query-editor]
+   [query-buttons]])
+
 (defn query-display []
   [:div.query-display
    [rui/tabs
@@ -161,14 +166,8 @@
 (defn query-container []
   [:div.query-container {:style {:display :inline}}
    [:h1 "Search"]
-   [:div.row
-    [:div {:style {:float         :left
-                   :width         "45%"
-                   :padding-right 20}}
-     [query-input]
-     [query-buttons]]]
-   [:div {:style {:width "45%"
-                  :float :right}}
+   [:div
+    [query-input]
     [query-display]]])
 
 (defn home-page []
