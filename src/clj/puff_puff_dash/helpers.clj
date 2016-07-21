@@ -8,9 +8,11 @@
                :external_id (:id link)
                :url         (:url link)
                :domain      (:domain link)
-               :properties  (select-keys
-                             link
-                             [:subreddit :score])})}})
+               :properties  (merge
+                             (select-keys
+                              link
+                              [:subreddit :score :media :created])
+                             {:permalink (str "https://reddit.com/" (:permalink link))})})}})
 
 (defn gen-id []
   (str (java.util.UUID/randomUUID)))
