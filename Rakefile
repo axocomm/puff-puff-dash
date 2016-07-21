@@ -232,9 +232,10 @@ EOT
 end
 
 desc 'Search posts by field with LIKE match'
-task :search, [:field, :term] do |_, args|
+task :search, [:field, :term, :show] do |_, args|
   field = args[:field] or fail 'No field provided'
   term = args[:term] or fail 'No term provided'
+  show = args[:show] or nil
 
   host = case $env
   when :dev
@@ -260,7 +261,19 @@ task :search, [:field, :term] do |_, args|
       -d '#{query.to_json}' #{host}/links
   EOT
 
-  cmd += ' | jq .' if system('which jq >/dev/null')
+  if system('which jq >/dev/null')
+    jq_cmd = '.links[]'
+
+    if show
+      jq_return = show.split(/:/).map do |f|
+        "#{f.split(/\./).last}: .#{f}"
+      end.join(', ')
+
+      jq_cmd += " | { #{jq_return} }"
+    end
+
+    cmd += " | jq '#{jq_cmd}'"
+  end
 
   sh cmd
 end
