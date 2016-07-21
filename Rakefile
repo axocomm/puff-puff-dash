@@ -1,5 +1,6 @@
 require 'pg'
 require 'net/ssh'
+require 'json'
 
 # TODO read from config.json?
 $config = {
@@ -29,6 +30,9 @@ $config = {
     :host        => 'ppd.intern.xyzyxyzy.xyz'
   }
 }
+
+$env = (ENV['ENV'] || 'dev').to_sym
+fail "Invalid environment #{$env}" unless [:dev, :prod].include?($env)
 
 def connect_db(db_config)
   PG.connect user:     db_config[:username], \
@@ -225,4 +229,38 @@ EOT
       sh cmd
     end
   end
+end
+
+desc 'Search posts by field with LIKE match'
+task :search, [:field, :term] do |_, args|
+  field = args[:field] or fail 'No field provided'
+  term = args[:term] or fail 'No term provided'
+
+  host = case $env
+  when :dev
+    'localhost:3000'
+  when :prod
+    $config[:deploy][:host]
+  end
+
+  query = {
+    :query => {
+      :where => [
+        {
+          :cmp => :like,
+          :field => field,
+          :value => term
+        }
+      ]
+    }
+  }
+
+  cmd = <<-EOT.strip.gsub(/  */, ' ')
+    curl -XPOST -H 'Content-type: application/json' \
+      -d '#{query.to_json}' #{host}/links
+  EOT
+
+  cmd += ' | jq .' if system('which jq >/dev/null')
+
+  sh cmd
 end

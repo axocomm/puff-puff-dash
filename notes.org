@@ -47,3 +47,7 @@
 ** Configuration
    - Use resources/config for Rake and services
    - Maybe create playlists of links from the same domain?
+
+* Bugs
+  - weird behavior of search query box when trying to edit anything but the
+  end of the text
