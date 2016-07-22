@@ -56,3 +56,6 @@
 * Bugs
   - weird behavior of search query box when trying to edit anything but the
   end of the text
+    - probably due to value being tied to the atom
+    - not using an atom for the text content doesn't work, as there is
+      then no way to cleanly clear the input
