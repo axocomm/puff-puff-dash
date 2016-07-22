@@ -1,36 +1,36 @@
 * API
 ** Routes
 *** /links
-- GET /
-  Get everything
-- POST /
-  Merge links with given source
-- GET /source/:source
-  Get links from source
-- GET /tag/:tag
-  Get links with tag
+    - GET /
+      Get everything
+    - POST /
+      Merge links with given source
+    - GET /source/:source
+      Get links from source
+    - GET /tag/:tag
+      Get links with tag
 **** /:id
-- GET /
-  Get by ID
-- PUT /
-  Update link
-- DELETE /
-  Delete link
+     - GET /
+       Get by ID
+     - PUT /
+       Update link
+     - DELETE /
+       Delete link
 ***** /tags
-- GET /
-  Get tags for this link
-- POST /:tag
-  Add tag to link
-- DELETE /:tag
-  Delete tag from link
+      - GET /
+        Get tags for this link
+      - POST /:tag
+        Add tag to link
+      - DELETE /:tag
+        Delete tag from link
 *** /tags
-- GET /
-  Get tags and number of links associated
+    - GET /
+      Get tags and number of links associated
 ** Response
-- Routes will connect with handler functions
-  - These will call relevant functions and produce the actual response
-    containing success and any error or result information
-- All responses will be JSON besides static routes that render pages
+   - Routes will connect with handler functions
+     - These will call relevant functions and produce the actual response
+       containing success and any error or result information
+   - All responses will be JSON besides static routes that render pages
 
 * Views
 ** Index
@@ -47,6 +47,11 @@
 ** Configuration
    - Use resources/config for Rake and services
    - Maybe create playlists of links from the same domain?
+- should probably add created_at, updated_at
+- link right to post for sharing, generate shortlink
+- share component between direct link link and link detail in home
+- now hide raw post by default
+  - maybe add to bottom buttons
 
 * Bugs
   - weird behavior of search query box when trying to edit anything but the

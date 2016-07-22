@@ -174,18 +174,27 @@ namespace :prod do
     path = $config[:deploy][:remote_path]
     ssh_options = { :port => port, :verbose => :error }
 
-    commands = [
-      'lein uberjar',
-      "rsync -rave 'ssh -p#{port}' --exclude='.git/' . #{user}@#{host}:#{path}"
-    ]
-
     remote_commands = [
       'docker-compose down',
       'docker-compose build',
       'docker-compose up -d'
     ].map { |c| "cd #{path} && #{c}" }
 
-    sh commands.join(' && ') unless ENV['NO_SYNC']
+    # TODO move to deploy config
+    files = [
+      'target/uberjar/*.jar',
+      'docker-compose.yml',
+      'Dockerfile',
+      'Dockerfile-db',
+      'Rakefile',
+      'resources/migrations/',
+      'resources/bin/',
+    ].join(' ')
+
+    sync_cmd = "rsync -raRve 'ssh -p#{port}' --exclude='.git/' #{files} #{user}@#{host}:#{path}"
+
+    sh 'lein uberjar' unless (ENV['NO_BUILD'] || ENV['NO_SYNC'])
+    sh sync_cmd unless ENV['NO_SYNC']
     Net::SSH.start(host, user, ssh_options) do |ssh|
       remote_commands.each { |c| puts ssh.exec!(c) }
       ssh.loop

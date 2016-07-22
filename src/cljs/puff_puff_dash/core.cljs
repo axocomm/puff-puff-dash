@@ -23,6 +23,7 @@
 (def current-page (r/atom 1))
 (def more-links? (r/atom true))
 (def link-details (r/atom {}))
+(def link-source-open? (r/atom false))
 
 (def page-size 20)
 
@@ -52,8 +53,11 @@
     (not (nil? (get-in link [:properties :media :oembed])))
     :video
 
-    (re-find #"imgur" (:domain link))
-    :imgur))
+    (and (:domain link) (re-find #"imgur" (:domain link)))
+    :imgur
+
+    :else
+    nil))
 
 (defn unescape-html [s]
   (-> s
@@ -123,11 +127,17 @@
          html  (unescape-html (:html embed))]
      [:div {:dangerouslySetInnerHTML #js{:__html html}}])])
 
+(defn link-raw [link]
+  [rui/dialog {:title            "JSON"
+               :modal            false
+               :open             @link-source-open?
+               :on-request-close #(reset! link-source-open? false)}
+   [:div.link-raw
+    [:pre (lq/clj->json link 2)]]])
+
 (defn link-display [link]
-  [:div
-   [:pre (lq/clj->json link 2)]
-   (when-let [media-type (link-media-type link)]
-     [link-media-embed link])])
+  (when-let [media-type (link-media-type link)]
+    [link-media-embed link]))
 
 (defn link-tags [tags]
   [:div.link-tags
@@ -147,13 +157,18 @@
                        :subtitle               link-source
                        :act-as-expander        true
                        :show-expandable-button true}]
-     [rui/card-text {:expandable true}
-      [link-display link]]
+     (when (link-media-type link)
+       [rui/card-text {:expandable true}
+        [link-media-embed link]])
      [rui/card-actions {:expandable true}
       [rui/flat-button {:label    "Open"
                         :on-click #(.open js/window url "_blank")}]
       [rui/flat-button {:label "Dead"
                         :style {:color "#a00"}}]
+      [rui/flat-button {:label        "JSON"
+                        :style        {:color "#00a"}
+                        :on-touch-tap #(reset! link-source-open? true)}]
+      [link-raw link]
       (when-let [details (get @link-details id)]
         [link-tags (:tags details)])]]))
 
