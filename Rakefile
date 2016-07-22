@@ -150,31 +150,6 @@ EOT
       new_file = pending_migrations.sort_by { |m| m[:id] }.first[:file]
       puts "Created #{new_file}"
     end
-
-    desc 'Import links from a file'
-    task :import, [:file, :source, :tag] do |t, args|
-      file = args[:file] or fail 'Missing file'
-      source = args[:source] or fail 'Missing source'
-      tag = args[:tag] or nil
-
-      # TODO config
-      host = 'localhost'
-      port = 3000
-      url = "http://#{host}:#{port}/links/#{source}"
-      if not tag.nil?
-        url += "?tag=#{tag}"
-      end
-
-      # TODO cmd_for command + hash of option keys and vals
-      cmd = <<-EOT
-curl \
-  -XPOST \
-  -H 'Content-Type: application/json' \
-  --data @#{file} \
-  #{url}
-EOT
-      sh cmd
-    end
   end
 
   desc 'Start services'
@@ -280,5 +255,33 @@ task :search, [:field, :term, :show] do |_, args|
     cmd += " | jq '#{jq_cmd}'"
   end
 
+  sh cmd
+end
+
+desc 'Import links from a file'
+task :import, [:file, :source, :tag] do |t, args|
+  file = args[:file] or fail 'Missing file'
+  source = args[:source] or fail 'Missing source'
+  tag = args[:tag] or nil
+
+  host = case $env
+         when :dev
+           'localhost:3000'
+         when :prod
+           $config[:deploy][:host]
+         end
+  url = "http://#{host}/links/#{source}"
+  if not tag.nil?
+    url += "?tag=#{tag}"
+  end
+
+  # TODO cmd_for command + hash of option keys and vals
+  cmd = <<-EOT
+curl \
+  -XPOST \
+  -H 'Content-Type: application/json' \
+  --data @#{file} \
+  #{url}
+EOT
   sh cmd
 end
