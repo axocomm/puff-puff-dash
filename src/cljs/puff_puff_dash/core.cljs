@@ -5,7 +5,7 @@
             [goog.events :as events]
             [goog.history.EventType :as HistoryEventType]
             [puff-puff-dash.ajax :refer [load-interceptors!]]
-            [ajax.core :refer [GET POST]]
+            [ajax.core :refer [GET POST DELETE]]
             [clojure.string :as string]
             [puff-puff-dash.link-query :as lq]
             [puff-puff-dash.helpers :as helpers]
@@ -17,6 +17,8 @@
   (:import goog.History))
 
 (declare fetch-links!)
+(declare tag-link!)
+(declare untag-link!)
 
 (def query-str (r/atom nil))
 (def params (r/atom {}))
@@ -149,7 +151,9 @@
                        "none")
         link-source  (case source
                        "reddit" (str source "/" (:subreddit properties))
-                       source)]
+                       source)
+        details      (get @link-details id)
+        dead?        (some #{"dead"} (:tags details))]
     [rui/card {:on-expand-change (fn [_]
                                    (when-not (contains? @link-details id)
                                      (load-link-details! id)))}
@@ -163,13 +167,18 @@
      [rui/card-actions {:expandable true}
       [rui/flat-button {:label    "Open"
                         :on-click #(.open js/window url "_blank")}]
-      [rui/flat-button {:label "Dead"
-                        :style {:color "#a00"}}]
+      (if dead?
+        [rui/flat-button {:label    "Alive"
+                          :style    {:color "#3a0"}
+                          :on-click #(untag-link! id "dead")}]
+        [rui/flat-button {:label    "Dead"
+                          :style    {:color "#a00"}
+                          :on-click #(tag-link! id "dead")}])
       [rui/flat-button {:label        "JSON"
                         :style        {:color "#00a"}
                         :on-touch-tap #(reset! link-source-open? true)}]
       [link-raw link]
-      (when-let [details (get @link-details id)]
+      (when (:tags details)
         [link-tags (:tags details)])]]))
 
 (defn query-editor []
@@ -307,6 +316,20 @@
                            (concat (session/get :links) links)))
                         (when (< (count links) page-size)
                           (reset! more-links? false))))
+                    (.log js/console (get response "error"))))}))
+
+(defn tag-link! [link-id tag]
+  (POST (str js/context "/links/" link-id "/tags/" tag)
+      {:handler (fn [response]
+                  (if (get response "success")
+                    (load-link-details! link-id)
+                    (.log js/console (get response "error"))))}))
+
+(defn untag-link! [link-id tag]
+  (DELETE (str js/context "/links/" link-id "/tags/" tag)
+      {:handler (fn [response]
+                  (if (get response "success")
+                    (load-link-details! link-id)
                     (.log js/console (get response "error"))))}))
 
 (defn mount-components []
