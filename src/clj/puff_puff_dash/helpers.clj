@@ -12,7 +12,7 @@
                              (select-keys
                               link
                               [:subreddit :score :media :created])
-                             {:permalink (str "https://reddit.com/" (:permalink link))})})}})
+                             {:permalink (str "https://reddit.com" (:permalink link))})})}})
 
 (defn gen-id []
   (str (java.util.UUID/randomUUID)))
