@@ -106,7 +106,7 @@
     (link-media-type link)))
 
 (defmethod link-media-embed :imgur [link]
-  [:div.link-media-embed
+  [:div.link-media-embed.imgur-embed
    (let [{:keys [url domain]} link]
      (if (= domain "i.imgur.com")
        [:img {:src url}]
