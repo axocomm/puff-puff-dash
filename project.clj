@@ -25,7 +25,6 @@
                  [mount "0.1.10"]
                  [cprop "0.1.8"]
                  [org.clojure/tools.cli "0.3.5"]
-                 [luminus-nrepl "0.1.4"]
                  [luminus-migrations "0.2.5"]
                  [conman "0.5.8"]
                  [org.postgresql/postgresql "9.4-1206-jdbc4"]
@@ -46,7 +45,8 @@
   :plugins [[lein-cprop "1.0.1"]
             [migratus-lein "0.3.9"]
             [lein-cljsbuild "1.1.3"]
-            [lein-immutant "2.1.0"]]
+            [lein-immutant "2.1.0"]
+            [cider/cider-nrepl "0.12.0"]]
   :clean-targets ^{:protect false}
   [:target-path [:cljsbuild :builds :app :compiler :output-dir] [:cljsbuild :builds :app :compiler :output-to]]
 

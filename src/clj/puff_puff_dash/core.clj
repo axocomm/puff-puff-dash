@@ -1,12 +1,13 @@
 (ns puff-puff-dash.core
   (:require [puff-puff-dash.handler :as handler]
-            [luminus.repl-server :as repl]
             [luminus.http-server :as http]
             [luminus-migrations.core :as migrations]
             [puff-puff-dash.config :refer [env]]
             [clojure.tools.cli :refer [parse-opts]]
             [clojure.tools.logging :as log]
-            [mount.core :as mount])
+            [mount.core :as mount]
+            [clojure.tools.nrepl.server :as nrepl-server]
+            [cider.nrepl :refer [cider-nrepl-handler]])
   (:gen-class))
 
 (def cli-options
@@ -27,11 +28,10 @@
   repl-server
   :start
   (when-let [nrepl-port (env :nrepl-port)]
-    (repl/start {:port nrepl-port}))
+    (nrepl-server/start-server :port 7000 :handler cider-nrepl-handler))
   :stop
   (when repl-server
-    (repl/stop repl-server)))
-
+    (nrepl-server/stop-server)))
 
 (defn stop-app []
   (doseq [component (:stopped (mount/stop))]
