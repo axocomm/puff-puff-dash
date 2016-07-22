@@ -39,3 +39,53 @@ pre {
   float: right;
   padding-right: 16px;
 }
+
+.query-container .query-input {
+  float: left;
+  width: 45%;
+  padding-right: 20px;
+}
+
+.query-container .query-display {
+  float: right;
+  width: 45%;
+}
+
+.link-media-embed {
+  text-align: center;
+  padding: 40px;
+}
+
+.link-media-embed.imgur-embed img {
+  max-width: 100%;
+}
+
+/** Responsive **/
+@media (max-width: 720px) {
+  .query-container h1,
+  .links-container h1 {
+    text-align: center;
+  }
+
+  .query-container .query-input,
+  .query-container .query-display {
+    width: 100%;
+    float: none;
+  }
+
+  .query-container .query-input {
+    margin-bottom: 20px;
+  }
+
+  .query-container .query-buttons {
+    margin-top: 10px;
+  }
+
+  .links-container {
+    margin-top: 40px;
+  }
+
+  .links-container .links {
+    margin-top: 40px;
+  }
+}

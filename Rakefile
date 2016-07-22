@@ -1,5 +1,6 @@
 require 'pg'
 require 'net/ssh'
+require 'json'
 
 # TODO read from config.json?
 $config = {
@@ -30,12 +31,19 @@ $config = {
   }
 }
 
+$env = (ENV['ENV'] || 'dev').to_sym
+fail "Invalid environment #{$env}" unless [:dev, :prod].include?($env)
+
 def connect_db(db_config)
-  PG.connect user:     db_config[:username], \
-             password: db_config[:password], \
-             dbname:   db_config[:database], \
-             port:     db_config[:host_port], \
-             host:     db_config[:host]
+  begin
+    PG.connect user:     db_config[:username], \
+               password: db_config[:password], \
+               dbname:   db_config[:database], \
+               port:     db_config[:host_port], \
+               host:     db_config[:host]
+  rescue Exception => e
+    puts e if ENV['DEBUG']
+  end
 end
 
 def container_running?(name)
@@ -48,15 +56,10 @@ def container_exists?(name)
   containers.include? name
 end
 
-begin
-  $db = connect_db $config[:db]
-rescue Exception => e
-  puts "Could not connect to database: #{e.message}" if ENV['DEBUG']
-  $db = nil
-end
-
 namespace :dev do
   namespace :db do
+    @db = connect_db $config[:db]
+
     def existing_migrations
       Dir.glob('resources/migrations/*.up.sql').map do |f|
         matches = /^(\d+)-([a-z-]+)\.up\.sql$/.match File.basename(f)
@@ -71,13 +74,13 @@ namespace :dev do
     end
 
     def pending_migrations
-      run = $db.query('select id from schema_migrations')
+      run = @db.query('select id from schema_migrations')
       run_ids = run.map { |r| r['id'] }.sort
       existing_migrations.reject { |e| run_ids.include? e[:id] }
     end
 
-    desc 'Run the database container'
-    task :run do
+    desc 'Start the database container'
+    task :start do
       container_name = $config[:db][:container_name]
       password = $config[:db][:password]
       image = $config[:db][:image]
@@ -97,6 +100,14 @@ EOT
       end
     end
 
+    desc 'Stop the database container'
+    task :stop do
+      container_name = $config[:db][:container_name]
+      if container_running?(container_name)
+        sh "docker stop #{container_name}"
+      end
+    end
+
     desc 'Run a psql shell'
     task :shell do
       container_name = $config[:db][:container_name]
@@ -104,7 +115,7 @@ EOT
       username = $config[:db][:username]
       image = $config[:db][:image]
 
-      raise 'Database container not running' unless container_running?(container_name)
+      fail 'Database container not running' unless container_running?(container_name)
 
       cmd = <<-EOT
 docker run \
@@ -116,7 +127,7 @@ EOT
 
     desc 'Show pending migrations'
     task :show_pending do
-      raise 'No database connection' if $db.nil?
+      fail 'No database connection' if @db.nil?
       pending_migrations.each do |m|
         printf "%-16s%s\n" % [m[:id], m[:name]]
       end
@@ -124,7 +135,7 @@ EOT
 
     desc 'Run pending migrations'
     task :run_migrations do
-      raise 'No database connection' if $db.nil?
+      fail 'No database connection' if @db.nil?
       if not pending_migrations.empty?
         sh 'lein migratus'
       else
@@ -209,13 +220,11 @@ namespace :prod do
   namespace :db do
     desc 'Run a prod psql shell'
     task :shell do
-      raise 'No database connection' if $db.nil?
-
       container_name = $config[:deploy][:db][:container_name]
       password = $config[:deploy][:db][:password]
       username = $config[:deploy][:db][:username]
 
-      raise 'Database container not running' unless container_running?(container_name)
+      fail 'Database container not running' unless container_running?(container_name)
 
       cmd = <<-EOT
 PGPASSWORD=#{password} \
@@ -225,4 +234,51 @@ EOT
       sh cmd
     end
   end
+end
+
+desc 'Search posts by field with LIKE match'
+task :search, [:field, :term, :show] do |_, args|
+  field = args[:field] or fail 'No field provided'
+  term = args[:term] or fail 'No term provided'
+  show = args[:show] or nil
+
+  host = case $env
+  when :dev
+    'localhost:3000'
+  when :prod
+    $config[:deploy][:host]
+  end
+
+  query = {
+    :query => {
+      :where => [
+        {
+          :cmp => :like,
+          :field => field,
+          :value => term
+        }
+      ]
+    }
+  }
+
+  cmd = <<-EOT.strip.gsub(/  */, ' ')
+    curl -XPOST -H 'Content-type: application/json' \
+      -d '#{query.to_json}' #{host}/links
+  EOT
+
+  if system('which jq >/dev/null')
+    jq_cmd = '.links[]'
+
+    if show
+      jq_return = show.split(/:/).map do |f|
+        "#{f.split(/\./).last}: .#{f}"
+      end.join(', ')
+
+      jq_cmd += " | { #{jq_return} }"
+    end
+
+    cmd += " | jq '#{jq_cmd}'"
+  end
+
+  sh cmd
 end

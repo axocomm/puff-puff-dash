@@ -44,6 +44,24 @@
                     (.log js/console (str "Could not get link details: " (or (get response "error")
                                                                              "unknown error")))))}))
 
+(defn link-media-type
+  "Try to determine if the given link has some media that can be embedded.
+  Right now returns one of :imgur, :video"
+  [link]
+  (cond
+    (not (nil? (get-in link [:properties :media :oembed])))
+    :video
+
+    (re-find #"imgur" (:domain link))
+    :imgur))
+
+(defn unescape-html [s]
+  (-> s
+      (string/replace #"&lt;" "<")
+      (string/replace #"&gt;" ">")
+      (string/replace #"&quot;" "\"")
+      (string/replace #"&amp;" "&")))
+
 ;; -------------------------
 ;; Components
 (defn nav-link [uri title page collapsed?]
@@ -79,10 +97,37 @@
     [:div.col-md-12
      "this is the story of puff-puff-dash... work in progress"]]])
 
-;; TODO maybe add embed in here?
+(def imgur-embed-wrapper
+  (with-meta identity
+    {:component-did-mount #(. js/imgurEmbed createIframe)}))
+
+(defmulti link-media-embed
+  (fn [link]
+    (link-media-type link)))
+
+(defmethod link-media-embed :imgur [link]
+  [:div.link-media-embed.imgur-embed
+   (let [{:keys [url domain]} link]
+     (if (= domain "i.imgur.com")
+       [:img {:src url}]
+       (let [imgur-id (last (string/split url #"/"))]
+         [imgur-embed-wrapper
+          [:blockquote {:class        "imgur-embed-pub"
+                        :lang         "en"
+                        :data-id      imgur-id
+                        :data-context false}]])))])
+
+(defmethod link-media-embed :video [link]
+  [:div.link-media-embed
+   (let [embed (get-in link [:properties :media :oembed])
+         html  (unescape-html (:html embed))]
+     [:div {:dangerouslySetInnerHTML #js{:__html html}}])])
+
 (defn link-display [link]
   [:div
-   [:pre (lq/clj->json link 2)]]) ;; TODO helpers namespace for this kind of thing
+   [:pre (lq/clj->json link 2)]
+   (when-let [media-type (link-media-type link)]
+     [link-media-embed link])])
 
 (defn link-tags [tags]
   [:div.link-tags
@@ -112,8 +157,8 @@
       (when-let [details (get @link-details id)]
         [link-tags (:tags details)])]]))
 
-(defn query-input []
-  [:div.query-input
+(defn query-editor []
+  [:div.query-editor
    [rui/text-field
     {:rows                8
      :style               {:width "100%"}
@@ -148,6 +193,11 @@
      :secondary true
      :label     "Reset"}]])
 
+(defn query-input []
+  [:div.query-input
+   [query-editor]
+   [query-buttons]])
+
 (defn query-display []
   [:div.query-display
    [rui/tabs
@@ -161,14 +211,8 @@
 (defn query-container []
   [:div.query-container {:style {:display :inline}}
    [:h1 "Search"]
-   [:div.row
-    [:div {:style {:float         :left
-                   :width         "45%"
-                   :padding-right 20}}
-     [query-input]
-     [query-buttons]]]
-   [:div {:style {:width "45%"
-                  :float :right}}
+   [:div
+    [query-input]
     [query-display]]])
 
 (defn home-page []
