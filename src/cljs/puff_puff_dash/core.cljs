@@ -97,6 +97,10 @@
     [:div.col-md-12
      "this is the story of puff-puff-dash... work in progress"]]])
 
+(def imgur-embed-wrapper
+  (with-meta identity
+    {:component-did-mount #(. js/imgurEmbed createIframe)}))
+
 (defmulti link-media-embed
   (fn [link]
     (link-media-type link)))
@@ -107,10 +111,11 @@
      (if (= domain "i.imgur.com")
        [:img {:src url}]
        (let [imgur-id (last (string/split url #"/"))]
-         [:blockquote {:class "imgur-embed-pub"
-                       :lang  "en"
-                       :data  {:id      imgur-id
-                               :context false}}])))])
+         [imgur-embed-wrapper
+          [:blockquote {:class        "imgur-embed-pub"
+                        :lang         "en"
+                        :data-id      imgur-id
+                        :data-context false}]])))])
 
 (defmethod link-media-embed :video [link]
   [:div.link-media-embed
