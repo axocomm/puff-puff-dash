@@ -130,12 +130,12 @@
      [:div {:dangerouslySetInnerHTML #js{:__html html}}])])
 
 (defn link-raw [link]
-  [rui/dialog {:title            "JSON"
+  [rui/dialog {:title            "Details"
                :modal            false
                :open             @link-source-open?
                :on-request-close #(reset! link-source-open? false)}
    [:div.link-raw
-    [:pre (lq/clj->json link 2)]]])
+    [:pre (helpers/clj->json link 2)]]])
 
 (defn link-display [link]
   (when-let [media-type (link-media-type link)]
@@ -174,7 +174,7 @@
         [rui/flat-button {:label    "Dead"
                           :style    {:color "#a00"}
                           :on-click #(tag-link! id "dead")}])
-      [rui/flat-button {:label        "JSON"
+      [rui/flat-button {:label        "Details"
                         :style        {:color "#00a"}
                         :on-touch-tap #(reset! link-source-open? true)}]
       [link-raw link]
@@ -192,7 +192,7 @@
      :on-change           (fn [e]
                             (do
                               (reset! query-str (-> e .-target .-value))
-                              (reset! params (lq/query->map @query-str))))
+                              (reset! params (helpers/query->map @query-str))))
      :value               @query-str}]])
 
 (defn query-buttons []
@@ -227,7 +227,7 @@
    [rui/tabs
     [rui/tab {:label "JSON"}
      [:pre {:style {:height 300}}
-      (lq/clj->json @params 2)]]
+      (helpers/clj->json @params 2)]]
     [rui/tab {:label "EDN"}
      [:pre {:style {:height 300}}
       (with-out-str (pprint @params))]]]])

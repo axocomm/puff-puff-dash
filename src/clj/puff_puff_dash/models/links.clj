@@ -33,6 +33,9 @@
                                              links)
         links                              (if limit
                                              (take limit links)
+                                             links)
+        links                              (if order
+                                             (sort-by (keyword order) links)
                                              links)]
     (merge {:success true
             :links   links}
