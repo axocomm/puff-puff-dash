@@ -7,7 +7,6 @@
             [puff-puff-dash.ajax :refer [load-interceptors!]]
             [ajax.core :refer [GET POST DELETE]]
             [clojure.string :as string]
-            [puff-puff-dash.link-query :as lq]
             [puff-puff-dash.helpers :as helpers]
             [cljs-react-material-ui.core :as ui]
             [cljs-react-material-ui.reagent :as rui]
