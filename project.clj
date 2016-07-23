@@ -76,7 +76,7 @@
      {:output-to     "target/cljsbuild/public/js/app.js"
       :output-dir    "target/uberjar"
       :externs       ["react/externs/react.js"]
-      :optimizations :advanced
+      :optimizations :simple
       :pretty-print  false
       :closure-warnings
       {:externs-validation :off :non-standard-jsdoc :off}}}}}
