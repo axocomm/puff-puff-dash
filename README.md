@@ -15,6 +15,19 @@ TODO
 
 ### Local Development
 
+#### Database
+
+First, the database server should be started with `rake dev:db:start`
+(or of course, you may bring your own PostgreSQL, just ensure configuration
+in the `Rakefile` and `profiles.clj` is updated accordingly).
+
+There are migrations that must be run to get the database set up. To view
+pending migrations, run `rake dev:db:show_pending`. This should print a
+list of all database migrations that need to be run. To apply them, simply
+run `rake dev:db:run_migrations`.
+
+#### Services
+
 Since I am typically in tmux, the Rake task `dev:start` is configured to
 split the current tmux window and run both the backend and frontend
 services. If you are not using tmux for some reason or would like to
@@ -23,7 +36,7 @@ start only one of the services, the following commands will do that:
 + `lein run` - start the server
 + `lein figwheel` - start Figwheel for ClojureScript
 
-The database server must also be started with `rake dev:db:start`.
+
 
 ### Docker
 
@@ -93,6 +106,9 @@ should then be given a virtual host to proxy requests, e.g.
       root /www/intern.xyzyxyzy.xyz/static;
       index index.html;
     }
+    
+The database image is also configured to automatically run all migrations
+located in `resources/migrations`.
 
 ## API
 
@@ -193,3 +209,28 @@ should then be given a virtual host to proxy requests, e.g.
     <td>Number of links per tag</td>
   </tr>  
 </table>
+
+### Managing Links
+
+#### Adding Links
+
+Currently, to add links, simply send a JSON dumped right from the source
+to `/links/:source`. By specifying `:source`, the system will attempt to
+transform the input into the general format defined for links. Only reddit
+is supported at the moment, but it *seems* to be working fine.
+
+For example:
+
+    curl \
+      -XPOST \
+      -H 'Content-type: application/json' \
+      -d @resources/liked.json \
+      http://localhost:3104/links/reddit?tag=liked
+      
+A Rake task is included to do this, and takes filename, source, and an
+optional tag:
+
+    rake import[resources/liked.json,reddit,liked]
+
+A `UNIQUE INDEX` has been created for links' `external_id`s to prevent
+duplicates. If any are encountered, updates will simply be merged in.

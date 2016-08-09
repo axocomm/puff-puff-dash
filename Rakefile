@@ -128,8 +128,13 @@ EOT
     desc 'Show pending migrations'
     task :show_pending do
       fail 'No database connection' if @db.nil?
-      pending_migrations.each do |m|
-        printf "%-16s%s\n" % [m[:id], m[:name]]
+      pending = pending_migrations
+      if pending.empty?
+        puts 'All migrations have been applied'
+      else
+        pending.each do |m|
+          printf "%-16s%s\n" % [m[:id], m[:name]]
+        end
       end
     end
 
