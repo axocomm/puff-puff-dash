@@ -7,15 +7,18 @@
 + Ruby 1.9.3+ (for Rake)
 + Leiningen 2.0
 
+## Configuration
+
+TODO
+
 ## Running
 
 ### Local Development
 
-Since I am typically in tmux, the Rake task `dev:start` is
-configured to split the current tmux window and run both
-the backend and frontend services. If you are not using
-tmux or would like to start only one of the services,
-the following commands will do that:
+Since I am typically in tmux, the Rake task `dev:start` is configured to
+split the current tmux window and run both the backend and frontend
+services. If you are not using tmux for some reason or would like to
+start only one of the services, the following commands will do that:
 
 + `lein run` - start the server
 + `lein figwheel` - start Figwheel for ClojureScript
@@ -56,13 +59,13 @@ To deploy, simply run `rake prod:deploy`. This will do the following:
 
 1. Run `lein uberjar` to build the JAR (unless `NO_BUILD` or `NO_SYNC` are set)
 2. `rsync` necessary files (unless `NO_SYNC` is set):
-    + target/uberjar/*.jar
-    + docker-compose.yml
-    + Dockerfile
-    + Dockerfile-db
-    + Rakefile
-    + resources/migrations/
-    + resources/bin/
+    + `target/uberjar/*.jar`
+    + `docker-compose.yml`
+    + `Dockerfile`
+    + `Dockerfile-db`
+    + `Rakefile`
+    + `resources/migrations/`
+    + `resources/bin/`
 3. Bring down current services if they are running
 4. Build the images
 5. Start the containers
@@ -91,6 +94,102 @@ should then be given a virtual host to proxy requests, e.g.
       index index.html;
     }
 
-## License
+## API
 
-Copyright © 2016 FIXME
+### `/links`
+
+<table>
+  <tr>
+    <th>Route</th>
+    <th>Method</th>
+    <th>Body</th>
+    <th>URL parameters</th>
+    <th>Route parameters</th>
+    <th>Response</th>
+  </tr>
+  <tr>
+    <td><code>/links</code></td>
+    <td>GET</td>
+    <td>Optional query JSON</td>
+    <td></td>
+    <td></td>
+    <td>Links matching criteria</td>
+  </tr>
+  <tr>
+    <td><code>/links/:source</code></td>
+    <td>GET</td>
+    <td></td>
+    <td></td>
+    <td><code>source</code></td>
+    <td>Links from given <code>:source</code></td>
+  </tr>
+  <tr>
+    <td><code>/links/:source</code></td>
+    <td>POST</td>
+    <td>Links JSON</td>
+    <td>optional initial <code>tag</code></td>
+    <td><code>source</code></td>
+    <td>Total links imported or error</td>
+  </tr>
+  <tr>
+    <td><code>/links/:id</code></td>
+    <td>GET</td>
+    <td></td>
+    <td></td>
+    <td><code>id</code></td>
+    <td>Link by <code>:id</code></td>
+  </tr>
+  <tr>
+    <td><code>/links/:id</code></td>
+    <td>DELETE</td>
+    <td></td>
+    <td></td>
+    <td><code>id</code></td>
+    <td>Delete link <code>:id</code></td>
+  </tr>
+  <tr>
+    <td><code>/links/:id/tags</code></td>
+    <td>GET</td>
+    <td></td>
+    <td></td>
+    <td><code>id</code></td>
+    <td>Get links tagged with <code>:tag</code></td>
+  </tr>
+  <tr>
+    <td><code>/links/:id/tags/:tag</code></td>
+    <td>POST</td>
+    <td></td>
+    <td></td>
+    <td><code>id tag</code></td>
+    <td>Tag link</td>
+  </tr>
+  <tr>
+    <td><code>/links/:id/tags/:tag</code></td>
+    <td>DELETE</td>
+    <td></td>
+    <td></td>
+    <td><code>id tag</code></td>
+    <td>Remove tag from link</td>
+  </tr>
+</table>
+
+## `/tags`
+
+<table>
+  <tr>
+    <th>Route</th>
+    <th>Method</th>
+    <th>Body</th>
+    <th>URL parameters</th>
+    <th>Route parameters</th>
+    <th>Response</th>
+  </tr>
+  <tr>
+    <td><code>/tags</code></td>
+    <td>GET</td>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td>Number of links per tag</td>
+  </tr>  
+</table>
