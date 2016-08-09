@@ -234,3 +234,59 @@ optional tag:
 
 A `UNIQUE INDEX` has been created for links' `external_id`s to prevent
 duplicates. If any are encountered, updates will simply be merged in.
+
+#### Querying Links
+
+Links can be queried using JSON, or in the case of going through the
+frontend, a simple query language that will generate it.
+
+The structure is fairly straightforward:
+
+    {
+      "order": {
+        "field": "title",
+        "direction": "asc",
+        "type": "order"
+      },
+      "query": {
+        "where": [
+          {
+            "cmp": "like",
+            "field": "properties.subreddit",
+            "value": "woah",
+            "type": "where"
+          }
+        ]
+      }
+    }
+
+To simplify things, a simple query language is implemented, e.g.
+
+    where properties.subreddit ~ woah
+    order title asc
+
+Valid operators for `where` are `=`, `~`, and `/`. The `~` operator
+accepts a regex and is case insensitive. All link fields should be
+queryable, including `properties`, whose keys are accessible using `.`
+as shown above. `order` takes a field name and an optional direction.
+`tagged` will fetch links with the given tag, e.g.
+
+    tagged dead
+
+becomes
+
+    {
+      "query": {
+        "tagged": [
+          "dead"
+        ]
+      }
+    }
+
+and will return links tagged `dead`.
+
+Queries can be sent to `/links` by sending the above JSON. There is also
+a Rake task `:search` that accepts a `field`, `term`, and optional `show`
+that will perform the required `curl` command and print the JSON response.
+If `jq` is installed, it will pretty print, and if `show` (delimited by colon)
+fields are provided, will print only those.
