@@ -93,9 +93,9 @@ namespace :dev do
         sh "docker start #{container_name}"
       else
         cmd = <<-EOT
-docker run \
-  --name #{container_name} -e POSTGRES_PASSWORD=#{password} -d -p 127.0.0.1:#{port}:5432 #{image}
-EOT
+          docker run \
+            --name #{container_name} -e POSTGRES_PASSWORD=#{password} -d -p 127.0.0.1:#{port}:5432 #{image}
+        EOT
         sh cmd
       end
     end
@@ -118,10 +118,10 @@ EOT
       fail 'Database container not running' unless container_running?(container_name)
 
       cmd = <<-EOT
-docker run \
-  -e PGPASSWORD=#{password} \
-  -it --rm --link #{container_name}:#{image} #{image} psql -h postgres -U #{username}
-EOT
+        docker run \
+          -e PGPASSWORD=#{password} \
+          -it --rm --link #{container_name}:#{image} #{image} psql -h postgres -U #{username}
+      EOT
       sh cmd
     end
 
@@ -216,10 +216,10 @@ namespace :prod do
       fail 'Database container not running' unless container_running?(container_name)
 
       cmd = <<-EOT
-PGPASSWORD=#{password} \
-docker exec \
-  -it #{container_name} psql -h localhost -U #{username}
-EOT
+        PGPASSWORD=#{password} \
+          docker exec \
+          -it #{container_name} psql -h localhost -U #{username}
+      EOT
       sh cmd
     end
   end
@@ -242,7 +242,7 @@ task :search, [:field, :term, :show] do |_, args|
     :query => {
       :where => [
         {
-          :cmp => :like,
+          :cmp   => :like,
           :field => field,
           :value => term
         }
@@ -291,11 +291,11 @@ task :import, [:file, :source, :tag] do |t, args|
 
   # TODO cmd_for command + hash of option keys and vals
   cmd = <<-EOT
-curl \
-  -XPOST \
-  -H 'Content-Type: application/json' \
-  --data @#{file} \
-  #{url}
-EOT
+    curl \
+      -XPOST \
+      -H 'Content-Type: application/json' \
+      --data @#{file} \
+      #{url}
+  EOT
   sh cmd
 end
