@@ -35,8 +35,6 @@
 
 Currently only handles `where' clauses"
   [links query]
-  (def links links)
-  (def query query)
   (let [{:keys [where]} query
         links (if where
                 (filter
