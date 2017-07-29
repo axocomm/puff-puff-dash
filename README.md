@@ -21,10 +21,12 @@ First, the database server should be started with `rake dev:db:start`
 (or of course, you may bring your own PostgreSQL, just ensure configuration
 in the `Rakefile` and `profiles.clj` is updated accordingly).
 
-There are migrations that must be run to get the database set up. To view
-pending migrations, run `rake dev:db:show_pending`. This should print a
-list of all database migrations that need to be run. To apply them, simply
-run `rake dev:db:run_migrations`.
+There are migrations that must be run to get the database set
+up. First, run the `dev:db:prepare` task to create the required
+`schema_migrations` table. To view pending migrations, run `rake
+dev:db:show_pending`. This should print a list of all database
+migrations that need to be run. To apply them, simply run `rake
+dev:db:run_migrations`.
 
 #### Services
 
@@ -91,10 +93,10 @@ should then be given a virtual host to proxy requests, e.g.
       listen 80;
       server_name ppd.intern.xyzyxyzy.xyz;
       client_max_body_size 20m;
-        
+
       access_log /var/log/nginx/ppd.intern.xyzyxyzy.xyz.access.log;
       error_log /var/log/nginx/ppd.intern.xyzyxyzy.xyz.error.log;
-      
+
       location / {
         proxy_pass http://localhost:3104;
         proxy_set_header Host $http_host;
@@ -106,7 +108,7 @@ should then be given a virtual host to proxy requests, e.g.
       root /www/intern.xyzyxyzy.xyz/static;
       index index.html;
     }
-    
+
 The database image is also configured to automatically run all migrations
 located in `resources/migrations`.
 
@@ -207,7 +209,7 @@ located in `resources/migrations`.
     <td></td>
     <td></td>
     <td>Number of links per tag</td>
-  </tr>  
+  </tr>
 </table>
 
 ### Managing Links
@@ -226,7 +228,7 @@ For example:
       -H 'Content-type: application/json' \
       -d @resources/liked.json \
       http://localhost:3104/links/reddit?tag=liked
-      
+
 A Rake task is included to do this, and takes filename, source, and an
 optional tag:
 

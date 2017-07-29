@@ -125,6 +125,14 @@ namespace :dev do
       sh cmd
     end
 
+    desc 'Prepare database for migrations'
+    task :prepare do
+      query = <<-EOT
+        CREATE TABLE schema_migrations(id BIGINT PRIMARY KEY)
+      EOT
+      @db.query(query)
+    end
+
     desc 'Show pending migrations'
     task :show_pending do
       fail 'No database connection' if @db.nil?
