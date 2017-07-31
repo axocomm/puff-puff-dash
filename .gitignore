@@ -11,3 +11,4 @@ profiles.clj
 .nrepl-port
 /log
 .d_volumes/
+figwheel_server.log
