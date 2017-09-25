@@ -6,7 +6,7 @@
 
 ;; TODO portable accessor creator
 (defn ->where-fn
-  "Retrun a function that performs the given comparison on a link."
+  "Return a function that performs the given comparison on a link."
   [{:keys [cmp field value]}]
   (let [field    (keyword field)
         cmp      (keyword cmp)
