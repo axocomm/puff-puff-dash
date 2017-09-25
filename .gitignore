@@ -12,3 +12,4 @@ profiles.clj
 /log
 .d_volumes/
 figwheel_server.log
+deploy-config.json

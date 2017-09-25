@@ -2,34 +2,13 @@ require 'pg'
 require 'net/ssh'
 require 'json'
 
-# TODO read from config.json?
-$config = {
-  :db => {
-    :container_name      => 'ppd-db',
-    :prod_container_name => 'puffpuffdash_db_1',
-    :image               => 'postgres',
-    :username            => 'postgres',
-    :password            => 'secretlol',
-    :database            => 'ppd',
-    :host                => 'localhost',
-    :host_port           => 6432
-  },
-  :services => {
-    :server   => 'lein run',
-    :figwheel => 'lein figwheel'
-  },
-  :deploy => {
-    :db => {
-      :container_name => 'puffpuffdash_db_1',
-      :username       => 'postgres',
-      :password       => 'secretlol',
-    },
-    :remote_path => '/home/deploy/puff-puff-dash',
-    :remote_user => 'deploy',
-    :ssh_port    => 2222,
-    :host        => 'ppd.intern.xyzyxyzy.xyz'
-  }
-}
+def read_config
+  File.open('deploy-config.json') do |fh|
+    JSON.parse(fh.read, symbolize_names: true)
+  end
+end
+
+$config = read_config
 
 $env = (ENV['ENV'] || 'dev').to_sym
 fail "Invalid environment #{$env}" unless [:dev, :prod].include?($env)
